@@ -1,0 +1,10 @@
+{
+  "name": "Справочник ремонта",
+  "short_name": "Ремонт",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1f2a36",
+  "theme_color": "#1f2a36",
+  "lang": "ru",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

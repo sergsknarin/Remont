@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2a36">
+<title>Справочник ремонта</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ремонт">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <button id="btnBack" class="icon" aria-label="Назад" hidden>&#8592;</button>
+  <button id="btnHome" class="icon" aria-label="На главную" title="На главную" hidden>&#8962;</button>
+  <div class="crumbs" id="crumbs">Справочник ремонта</div>
+  <span id="saveState" class="sv"></span>
+  <button id="btnMenu" class="icon" aria-label="Меню">&#8942;</button>
+</header>
+<div class="search"><input id="q" type="search" placeholder="Поиск: марка, модель, работа…" autocomplete="off"></div>
+<main id="view"></main>
+
+<div id="menu" class="sheet" hidden>
+  <button data-act="codes">Ошибки сканера</button>
+  <button data-act="importw">Загрузить инструкцию (PDF, фото)</button>
+  <button data-act="edit">Режим правки (переименовать / удалить)</button>
+  <button data-act="export">Сохранить резервную копию</button>
+  <button data-act="import">Загрузить резервную копию</button>
+  <button data-act="reset">Сбросить к исходной базе</button>
+  <button data-act="memory">Память (фото)</button>
+  <button data-act="about">О программе</button>
+  <button data-act="close" class="muted">Закрыть</button>
+</div>
+<input id="file" type="file" accept=".json,application/json" hidden>
+<input id="photoIn" type="file" accept="image/*" multiple hidden>
+<div id="toast" hidden></div>
+
+<script src="data/base.js"></script>
+<script src="photos.js"></script>
+<script src="errors.js"></script>
+<script src="import.js"></script>
+<script src="data/docs.js"></script>
+<script src="docs.js"></script>
+<script src="docadd.js"></script>
+<script src="data/to.js" onerror="0"></script>
+<script src="to.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
