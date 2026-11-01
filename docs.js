@@ -4,7 +4,8 @@
 'use strict';
 
 const DOCS_BASE_DEFAULT = 'file:///F:/Jetour/1 Мануалы/техдок 18,08,2026/'; // с 0.12.1 — после раскладки флешки
-const docsBase = () => { let b = LS.get('docsBase', '') || (window.DOCS && DOCS.base) || DOCS_BASE_DEFAULT; return b.endsWith('/') ? b : b + '/'; };
+const docsBase = () => { let b = LS.get('docsBase', '') || (window.DOCS && DOCS.base) || DOCS_BASE_DEFAULT;
+  b = b.replace('/Jetur/техдок 18,08,2026', '/Jetour/1 Мануалы/техдок 18,08,2026'); /* старый путь до раскладки флешки */ return b.endsWith('/') ? b : b + '/'; };
 const docsAll = () => ((window.DOCS && DOCS.docs) || []).concat((typeof DB !== 'undefined' && DB && DB.docsUser) || []); // свои документы — docadd.js
 // Документы для марки/модели: у документа brand и models[] (пусто — вся марка)
 function docsFor(c) {
