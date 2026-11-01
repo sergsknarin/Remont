@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.15.0';
+const APP_VERSION = '0.16.0';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -512,8 +512,9 @@ function pathInfo(p) {
 }
 function quickHtml(h) {
   h.qcodes = () => go({ type: 'codes' });
-  h.qimp = importInstruction; h.qcase = quickCase; // case.js
-  let html = backupHtml(h) + rowsHtml([{ k: 'qcase', t: '⚡ Быстрый случай', s: 'симптом, причина, артикул, фото — за минуту' },{ k: 'qcodes', t: '⚠ Ошибки сканера', s: 'записано кодов: ' + codesDB().length + ' · ввести код и увидеть решение' },
+  h.qimp = importInstruction; h.qcase = quickCase; h.qwork = quickWork; // case.js
+  let html = backupHtml(h) + rowsHtml([{ k: 'qwork', t: '⚡ Быстрая работа', s: 'название с подсказками, пункты, нормо-часы, фото' },
+    { k: 'qcase', t: '⚡ Быстрый случай', s: 'симптом, причина, артикул, фото — за минуту' },{ k: 'qcodes', t: '⚠ Ошибки сканера', s: 'записано кодов: ' + codesDB().length + ' · ввести код и увидеть решение' },
     { k: 'qimp', t: '📄 Загрузить инструкцию', s: 'PDF, фото листов или файл работы — разложится само' }]);
   const last = LS.get('last', null), li = pathInfo(last);
   if (li) { h.qlast = () => goPath(last); html += '<h2>Продолжить</h2><div class="cont">' + rowsHtml([{ k: 'qlast', t: '▶ ' + esc(li.t), s: esc(li.s) }]) + '</div>'; }
