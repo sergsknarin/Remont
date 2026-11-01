@@ -16,7 +16,7 @@ const okBadge = ok => ok === true ? '<span class="ok">✓ помогло</span>'
 
 /* ---------- Список ошибок ---------- */
 function renderCodes(v, c) {
-  if (!ERR && !errFailed) { v.innerHTML = '<div class="empty">Загружаю базу кодов из мануалов Jetour…</div>'; loadErrDb().then(render, () => { errFailed = true; render(); }); return; }
+  if (!ERR && !errFailed) { v.innerHTML = '<div class="empty">Загружаю базу кодов…</div>'; loadErrDb().then(render, () => { errFailed = true; render(); }); return; }
   migrateErrNotes();
   const car = c.brand ? carName(c.brand.id, c.model && c.model.id) : '';
   v.innerHTML = `<h2>Ошибки сканера${car ? ' · ' + esc(car) : ''}</h2>
@@ -36,7 +36,7 @@ function renderCodes(v, c) {
       const mine = rank(x) >= 1 ? ' · <b>есть решение для этой машины</b>' : '';
       return { k: x.id, t: '<b>' + esc(x.code) + '</b> ' + esc(x.title || ''), s: `решений: ${x.sols.length}${x.seen ? ' · встречалась ' + x.seen : ''}${mine}` };
     })) : `<div class="empty">${raw ? 'В ваших записях такой ошибки нет' : 'Своих записей пока нет. Введите код с экрана сканера.'}</div>`;
-    html += dtcListHtml(raw, cq, c, h);
+    html += dtcListHtml(raw, cq, c, h) + obdListHtml(raw, cq, h); // obdcodes.js — общие коды OBD-II
     list.innerHTML = html; bindRows(list, h);
     const nb = $('#codeNew'); if (nb) nb.onclick = () => newCode(cq, c);
   };
@@ -61,9 +61,9 @@ function renderCode(v, c, id) {
   if (id.startsWith('dtc:')) {   // код только из мануалов — своих записей ещё нет
     const code = id.slice(4), own = findCode(code);
     if (own) { state.path[state.path.length - 1].id = own.id; history.replaceState(navState(), ''); return render(); }
-    v.innerHTML = `<div class="card"><h1>${esc(code)}</h1><div class="meta">${esc(dtcDesc(code) || 'нет в мануалах Jetour')}</div>
+    v.innerHTML = `<div class="card"><h1>${esc(code)}</h1><div class="meta">${esc(dtcDesc(code) || 'нет в базе кодов')}</div>
       <div class="muted">Своих решений пока нет. Запишите, как устранили, — в следующий раз будет подсказка.</div>
-      <button class="add" id="cSol">+ Решение</button></div>${dtcCardHtml(code, c)}`;
+      <button class="add" id="cSol">+ Решение</button></div>${dtcCardHtml(code, c)}${obdCardHtml(code)}`;
     $('#cSol').onclick = async () => {
       const x = { id: newId('e'), code, title: dtcDesc(code), sys: '', sols: [], seen: 1, added: new Date().toISOString() };
       codesDB().push(x); state.path[state.path.length - 1].id = x.id; history.replaceState(navState(), ''); await save(); editSol(x, null, c);
@@ -85,7 +85,7 @@ function renderCode(v, c, id) {
       : '<div class="muted">Решений пока нет. Запишите, что сделали.</div>'}
     <button class="add" id="cSol">+ Решение</button>
     ${works.length ? '<div class="sec"><h2>Связанные работы</h2></div>' + rowsHtml(works.map((w, i) => ({ k: 'w' + i, t: esc(w.name), s: esc(w.group) }))) : ''}
-    <div class="btns"><button id="cEdit">Код и описание</button><button id="cDel" class="danger">Удалить ошибку</button></div></div>${dtcCardHtml(x.code, c)}`;
+    <div class="btns"><button id="cEdit">Код и описание</button><button id="cDel" class="danger">Удалить ошибку</button></div></div>${dtcCardHtml(x.code, c)}${obdCardHtml(x.code)}`;
   bindDtcRefs(v);
   const h = {}; works.forEach((w, i) => h['w' + i] = () => goPath(state.path.filter(p => p.type === 'brand' || p.type === 'model').concat({ type: 'work', id: w.id })));
   bindRows(v, h);
@@ -167,7 +167,7 @@ function loadErrDb() {
   return errLoading = errLoading || loadScript('data/errors.js').then(() => (ERR = window.ERR_DB || { codes: {}, src: [] }), e => { errLoading = null; throw e; });
 }
 const dtcGroups = code => (ERR && ERR.codes[code]) || [];
-const dtcDesc = code => { const g = dtcGroups(code).slice().sort((a, b) => b.d.length - a.d.length)[0]; return g ? g.d : ''; };
+const dtcDesc = code => { const g = dtcGroups(code).slice().sort((a, b) => b.d.length - a.d.length)[0]; return g ? g.d : obdDesc(code); }; // нет в мануалах — общее описание OBD-II
 const dtcModel = c => c.brand && /jetour/i.test(c.brand.name) && c.model ? c.model.name : '';
 // Строки «из мануала» для списка: по коду (P0130, 0130) или по словам описания
 function dtcListHtml(raw, cq, c, h, max = 100) {

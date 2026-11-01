@@ -154,3 +154,8 @@ details summary{cursor:pointer;color:var(--acc);font-size:14px;padding:6px 0}
 /* напоминание о копии (0.13.0) */
 .bkwarn .row{background:#fff4d6}
 @media (prefers-color-scheme:dark){.bkwarn .row{background:#3a3016}}
+
+/* общие коды OBD-II (0.15.0) */
+.card.obd{margin-top:10px}
+.card.obd ol{margin:6px 0 8px;padding-left:20px}
+.card.obd li{margin:4px 0}
