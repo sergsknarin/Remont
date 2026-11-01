@@ -1,6 +1,8 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.11.0';
+const APP_VERSION = '0.12.0';
+// Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
+const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
 /* ---------- Хранилище (IndexedDB, запасной вариант — память) ---------- */
 const Store = {
@@ -8,7 +10,7 @@ const Store = {
   open() {
     return new Promise(res => {
       try {
-        const rq = indexedDB.open('repairRef', 3);
+        const rq = indexedDB.open(APP.db, 3);
         rq.onupgradeneeded = () => { const d = rq.result;
           if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
           if (!d.objectStoreNames.contains('photos')) d.createObjectStore('photos'); // фото: id → Blob
@@ -131,7 +133,7 @@ function render() {
   const c = ctx(), v = $('#view'), q = $('#q').value.trim().toLowerCase();
   $('#btnBack').hidden = $('#btnHome').hidden = state.path.length === 0;
   const crumbs = [c.brand && c.brand.name, c.model && c.model.name, ...c.groups].filter(Boolean);
-  $('#crumbs').textContent = crumbs.length ? crumbs.join(' › ') : 'Справочник ремонта';
+  $('#crumbs').textContent = crumbs.length ? crumbs.join(' › ') : APP.name;
 
   if (q) return renderSearch(v, c, q);
   remember(c);
@@ -177,6 +179,8 @@ const addBtns = list => '<div class="adds">' + list.map(([a, t]) => `<button cla
 function bindAdds(v, h) { v.querySelectorAll('[data-add]').forEach(b => b.onclick = () => h[b.dataset.add]()); }
 
 function renderBrands(v) {
+  const ob = APP.only && DB.brands.find(b => norm(b.name) === norm(APP.only));
+  if (ob) return renderOnly(v, ob);
   const h = {}, he = {}, hd = {}, items = DB.brands.map(b => {
     h[b.id] = () => go({ type: 'brand', id: b.id });
     he[b.id] = () => renameBrand(b);
@@ -196,6 +200,18 @@ function renderModels(v, b) {
     return { k: m.id, t: esc(m.name), ed: true };
   }));
   v.innerHTML = docsRow(ctx(), h) + '<h2>Модели</h2>' + rowsHtml(items) + addBtns([['model', 'Модель']]);
+  bindRows(v, h, he, hd); bindAdds(v, { model: () => addModel(b) });
+}
+
+// Программа под одну марку (JetService): на главной сразу её модели
+function renderOnly(v, b) {
+  const h = {}, he = {}, hd = {}, P = m => [{ type: 'brand', id: b.id }, { type: 'model', id: m }];
+  h.all = () => goPath(P(null));
+  const items = [{ k: 'all', t: 'Все модели', s: 'общие работы ' + esc(b.name) }].concat(b.models.map(m => {
+    h[m.id] = () => goPath(P(m.id)); he[m.id] = () => renameModel(b, m); hd[m.id] = () => deleteModel(b, m);
+    return { k: m.id, t: esc(m.name), ed: true };
+  }));
+  v.innerHTML = quickHtml(h) + '<h2>Модели ' + esc(b.name) + '</h2>' + rowsHtml(items) + addBtns([['model', 'Модель']]);
   bindRows(v, h, he, hd); bindAdds(v, { model: () => addModel(b) });
 }
 
@@ -443,8 +459,8 @@ function renderSearch(v, c, q) {
 }
 
 /* ---------- Где я был: продолжить, недавние, прокрутка (0.5.0) ---------- */
-const LS = { get(k, d) { try { const v = localStorage.getItem('rr_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('rr_' + k, JSON.stringify(v)); } catch (e) {} } };
+const LS = { get(k, d) { try { const v = localStorage.getItem(APP.ls + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(APP.ls + k, JSON.stringify(v)); } catch (e) {} } };
 const pkey = p => JSON.stringify(p || state.path);
 let scrolls = LS.get('scroll', {});
 function saveScroll() {
@@ -532,7 +548,7 @@ menu.onclick = async e => {
   if (act === 'memory') memoryScreen();
   if (act === 'importw') importInstruction();
   if (act === 'codes') goPath(state.path.filter(p => p.type === 'brand' || p.type === 'model').concat({ type: 'codes' }));
-  if (act === 'about') toast('Справочник ремонта v' + APP_VERSION + ' · марок: ' + DB.brands.length + ' · общих работ: ' + DB.templates.length);
+  if (act === 'about') toast(APP.name + ' v' + APP_VERSION + ' · марок: ' + DB.brands.length + ' · общих работ: ' + DB.templates.length);
 };
 
 async function exportBackup() {
