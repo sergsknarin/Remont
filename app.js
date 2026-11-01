@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.12.0';
+const APP_VERSION = '0.14.0';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -62,7 +62,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2500); }
 
 function validDB(d) { return d && d.format === 'repair-ref' && Array.isArray(d.brands) && Array.isArray(d.templates) && Array.isArray(d.items); }
-async function save() { if (!(await Store.set('db', DB))) toast('Не удалось сохранить в память браузера'); }
+async function save() { if (!(await Store.set('db', DB))) toast('Не удалось сохранить в память браузера'); else if (typeof bkMark === 'function') bkMark(); } // bkMark — backup.js
 
 /* ---------- Работы для марки/модели ---------- */
 // Общие шаблоны + работы конкретной марки (без модели) + работы модели
@@ -441,7 +441,7 @@ function renderSearch(v, c, q) {
   const hl = s => esc(s).replace(rx, m => `<mark>${m}</mark>`);
   const h = {}; let html = '';
   if (!c.brand) {
-    html += brandModelHits(vs, hl, h);
+    html += caseHits(has, hl, h) + brandModelHits(vs, hl, h);
     const ws = DB.templates.filter(t => has(t.name)).slice(0, 100);
     html += codeHits(q, hl, h);
     if (ws.length) html += '<h2>Общие работы</h2>' + rowsHtml(ws.map(w => { h[w.id] = () => {}; return { k: w.id, t: hl(w.name), s: esc(w.group) }; })) + '<p class="s" style="color:var(--muted);padding:8px 4px">Выберите марку, чтобы открыть работу.</p>';
@@ -452,7 +452,7 @@ function renderSearch(v, c, q) {
       h[w.id] = () => goPath(base.concat({ type: 'work', id: w.id }));
       return { k: w.id, t: hl(w.name), s: esc(w.group) };
     }));
-    html += codeHits(q, hl, h) + brandModelHits(vs, hl, h);
+    html += codeHits(q, hl, h) + caseHits(has, hl, h) + brandModelHits(vs, hl, h);
   }
   v.innerHTML = html || '<div class="empty">Ничего не найдено</div>';
   bindRows(v, h);
@@ -512,8 +512,8 @@ function pathInfo(p) {
 }
 function quickHtml(h) {
   h.qcodes = () => go({ type: 'codes' });
-  h.qimp = importInstruction;
-  let html = rowsHtml([{ k: 'qcodes', t: '⚠ Ошибки сканера', s: 'записано кодов: ' + codesDB().length + ' · ввести код и увидеть решение' },
+  h.qimp = importInstruction; h.qcase = quickCase; // case.js
+  let html = backupHtml(h) + rowsHtml([{ k: 'qcase', t: '⚡ Быстрый случай', s: 'симптом, причина, артикул, фото — за минуту' },{ k: 'qcodes', t: '⚠ Ошибки сканера', s: 'записано кодов: ' + codesDB().length + ' · ввести код и увидеть решение' },
     { k: 'qimp', t: '📄 Загрузить инструкцию', s: 'PDF, фото листов или файл работы — разложится само' }]);
   const last = LS.get('last', null), li = pathInfo(last);
   if (li) { h.qlast = () => goPath(last); html += '<h2>Продолжить</h2><div class="cont">' + rowsHtml([{ k: 'qlast', t: '▶ ' + esc(li.t), s: esc(li.s) }]) + '</div>'; }
@@ -569,9 +569,8 @@ async function exportBackup() {
   const d = new Date(), pad = n => String(n).padStart(2, '0');
   const name = `справочник_бэкап_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}.json`;
   const blob = new Blob([JSON.stringify({ ...DB, exported: d.toISOString(), appVersion: APP_VERSION, photoData, fileData, docPagesData }, null, 1)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  toast('Копия сохранена: ' + name);
+  if (!(await deliverFile(blob, name))) return; // backup.js: ПК — «Сохранить как», iPhone — «Поделиться»
+  bkDone(); toast('Копия сохранена: ' + name); render();
 }
 
 $('#file').onchange = async e => {
@@ -584,7 +583,7 @@ $('#file').onchange = async e => {
     if (d.fileData) for (const [id, data] of Object.entries(d.fileData)) await Store.set(id, await (await fetch(data)).blob(), 'files');
     if (d.docPagesData) { await Store.set('docpages', d.docPagesData); userPages = null; }
     delete d.exported; delete d.appVersion; delete d.photoData; delete d.fileData; delete d.docPagesData;
-    DB = d; await save(); state.path = []; render(); toast('Резервная копия загружена');
+    DB = d; await save(); LS.set('bkChanges', 0); LS.set('bkFirstChange', 0); state.path = []; render(); toast('Резервная копия загружена');
   } catch (err) { ask('Не удалось загрузить файл: ' + err.message, [{ k: 1, t: 'Понятно' }]); }
 };
 
@@ -607,7 +606,7 @@ function homeScreenHint() {
   await Store.open();
   const saved = await Store.get('db');
   DB = validDB(saved) ? saved : structuredClone(window.BASE_DB);
-  if (!saved) await save();
+  if (!saved) { await save(); LS.set('bkChanges', 0); LS.set('bkFirstChange', 0); } // первый запуск — не изменение
   render();
   homeScreenHint();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});

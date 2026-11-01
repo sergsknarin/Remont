@@ -150,3 +150,7 @@ details summary{cursor:pointer;color:var(--acc);font-size:14px;padding:6px 0}
 .tori .tv{font-weight:600}
 .tori .s{color:var(--muted);font-size:12px;cursor:pointer}
 .tori .ctx{cursor:default;background:var(--bg);padding:4px;border-radius:6px}
+
+/* напоминание о копии (0.13.0) */
+.bkwarn .row{background:#fff4d6}
+@media (prefers-color-scheme:dark){.bkwarn .row{background:#3a3016}}
