@@ -167,3 +167,6 @@ details summary{cursor:pointer;color:var(--acc);font-size:14px;padding:6px 0}
 .row2{display:flex;gap:8px}.row2>div{flex:1}
 
 .ver{color:var(--muted);font-size:12px;text-align:center;margin:18px 0 6px}
+
+/* Яндекс.Диск (0.17.0) */
+.yd{font-size:12px;margin-left:6px;color:#9fb3c8}.yd.ok{color:#7fd38a}.yd.err{color:#ff8a80}.yd.warn{color:#ffd27f}

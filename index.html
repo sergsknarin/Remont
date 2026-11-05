@@ -18,7 +18,7 @@
   <button id="btnBack" class="icon" aria-label="Назад" hidden>&#8592;</button>
   <button id="btnHome" class="icon" aria-label="На главную" title="На главную" hidden>&#8962;</button>
   <div class="crumbs" id="crumbs">Справочник ремонта</div>
-  <span id="saveState" class="sv"></span>
+  <span id="saveState" class="sv"></span><span id="ydState" class="yd"></span>
   <button id="btnMenu" class="icon" aria-label="Меню">&#8942;</button>
 </header>
 <div class="search"><input id="q" type="search" placeholder="Поиск: марка, модель, работа…" autocomplete="off"></div>
@@ -31,6 +31,7 @@
   <button data-act="export">Сохранить резервную копию</button>
   <button data-act="import">Загрузить резервную копию</button>
   <button data-act="reset">Сбросить к исходной базе</button>
+  <button data-act="yadisk">☁ Яндекс.Диск (синхронизация)</button>
   <button data-act="memory">Память (фото)</button>
   <button data-act="about">О программе</button>
   <button data-act="close" class="muted">Закрыть</button>
@@ -52,6 +53,7 @@
 <script src="to.js"></script>
 <script src="backup.js"></script>
 <script src="case.js"></script>
+<script src="sync.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

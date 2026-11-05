@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.16.1';
+const APP_VERSION = '0.17.0';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -62,7 +62,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2500); }
 
 function validDB(d) { return d && d.format === 'repair-ref' && Array.isArray(d.brands) && Array.isArray(d.templates) && Array.isArray(d.items); }
-async function save() { if (!(await Store.set('db', DB))) toast('Не удалось сохранить в память браузера'); else if (typeof bkMark === 'function') bkMark(); } // bkMark — backup.js
+async function save() { if (!(await Store.set('db', DB))) toast('Не удалось сохранить в память браузера'); else { if (typeof bkMark === 'function') bkMark(); if (typeof ydMark === 'function') ydMark(); } } // bkMark — backup.js, ydMark — sync.js (Яндекс.Диск)
 
 /* ---------- Работы для марки/модели ---------- */
 // Общие шаблоны + работы конкретной марки (без модели) + работы модели
@@ -547,6 +547,7 @@ menu.onclick = async e => {
     DB = structuredClone(window.BASE_DB); await save(); state.path = []; render(); toast('База сброшена');
   }
   if (act === 'memory') memoryScreen();
+  if (act === 'yadisk' && typeof ydScreen === 'function') ydScreen(); // sync.js
   if (act === 'importw') importInstruction();
   if (act === 'codes') goPath(state.path.filter(p => p.type === 'brand' || p.type === 'model').concat({ type: 'codes' }));
   if (act === 'about') toast(APP.name + ' v' + APP_VERSION + ' · марок: ' + DB.brands.length + ' · общих работ: ' + DB.templates.length);
@@ -610,6 +611,7 @@ function homeScreenHint() {
   if (!saved) { await save(); LS.set('bkChanges', 0); LS.set('bkFirstChange', 0); } // первый запуск — не изменение
   render();
   homeScreenHint();
+  if (typeof ydInit === 'function') ydInit(); // sync.js — только в общем справочнике
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     // новая версия скачана → перезагрузиться один раз, чтобы сразу показать её (0.16.1)
     const had = !!navigator.serviceWorker.controller; let reloaded = false;
