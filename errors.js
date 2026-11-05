@@ -153,7 +153,7 @@ function bindWorkCodes(v, w, c, mut) {
 
 /* ---------- Для общего поиска ---------- */
 function codeHits(q, hl, h) {
-  const dtc = ERR ? dtcListHtml(q, codeNorm(q), ctx(), h, 20) : '';
+  const dtc = (ERR ? dtcListHtml(q, codeNorm(q), ctx(), h, 20) : '') + obdListHtml(q, codeNorm(q), h, 20); // + общие OBD-II (0.16.1)
   const cq = codeNorm(q), vs = qVariants(q);
   const xs = codesDB().filter(x => (cq.length >= 2 && x.code.includes(cq)) || hasAny(vs, x.title || '')).slice(0, 30);
   xs.forEach(x => h['sc' + x.id] = () => goPath(state.path.filter(p => p.type === 'brand' || p.type === 'model').concat({ type: 'code', id: x.id })));

@@ -165,3 +165,5 @@ details summary{cursor:pointer;color:var(--acc);font-size:14px;padding:6px 0}
 .wsug button{text-align:left;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
 .wsug button span{display:block;color:var(--muted);font-size:12px}
 .row2{display:flex;gap:8px}.row2>div{flex:1}
+
+.ver{color:var(--muted);font-size:12px;text-align:center;margin:18px 0 6px}

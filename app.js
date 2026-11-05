@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.16.0';
+const APP_VERSION = '0.16.1';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -187,7 +187,7 @@ function renderBrands(v) {
     hd[b.id] = () => deleteBrand(b);
     return { k: b.id, t: esc(b.name), n: b.models.length ? b.models.length + ' мод.' : null, ed: true };
   });
-  v.innerHTML = quickHtml(h) + '<h2>Марки</h2>' + rowsHtml(items) + addBtns([['brand', 'Марка']]);
+  v.innerHTML = quickHtml(h) + '<h2>Марки</h2>' + rowsHtml(items) + addBtns([['brand', 'Марка']]) + `<p class="ver">${esc(APP.name)} · версия ${APP_VERSION}</p>`;
   bindRows(v, h, he, hd); bindAdds(v, { brand: addBrand });
 }
 
@@ -211,7 +211,7 @@ function renderOnly(v, b) {
     h[m.id] = () => goPath(P(m.id)); he[m.id] = () => renameModel(b, m); hd[m.id] = () => deleteModel(b, m);
     return { k: m.id, t: esc(m.name), ed: true };
   }));
-  v.innerHTML = quickHtml(h) + '<h2>Модели ' + esc(b.name) + '</h2>' + rowsHtml(items) + addBtns([['model', 'Модель']]);
+  v.innerHTML = quickHtml(h) + '<h2>Модели ' + esc(b.name) + '</h2>' + rowsHtml(items) + addBtns([['model', 'Модель']]) + `<p class="ver">${esc(APP.name)} · версия ${APP_VERSION}</p>`;
   bindRows(v, h, he, hd); bindAdds(v, { model: () => addModel(b) });
 }
 
@@ -610,5 +610,10 @@ function homeScreenHint() {
   if (!saved) { await save(); LS.set('bkChanges', 0); LS.set('bkFirstChange', 0); } // первый запуск — не изменение
   render();
   homeScreenHint();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    // новая версия скачана → перезагрузиться один раз, чтобы сразу показать её (0.16.1)
+    const had = !!navigator.serviceWorker.controller; let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded) { reloaded = true; location.reload(); } });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+  }
 })();
