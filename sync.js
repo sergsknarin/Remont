@@ -6,7 +6,8 @@
 
 const YD = 'https://cloud-api.yandex.net/v1/disk';
 const ydTok = () => LS.get('ydToken', '');
-const ydCid = () => LS.get('ydClient', '') || (window.APP_CFG && APP_CFG.ydClient) || '';
+const YD_CLIENT = 'cf8f5ded89f24b56b2b12d3f4c1ebe90'; // приложение «Ремонт» на oauth.yandex.ru (не секрет)
+const ydCid = () => LS.get('ydClient', '') || YD_CLIENT;
 let ydBusy = false, ydTimer = 0, ydAgain = false;
 function ydMark() { LS.set('ydDirty', Date.now()); if (ydTok()) { clearTimeout(ydTimer); ydTimer = setTimeout(() => ydSync(), 5000); } }  // из save()
 function ydState(t, cls) { const el = document.getElementById('ydState'); if (el) { el.textContent = t; el.className = 'yd ' + (cls || ''); } }
