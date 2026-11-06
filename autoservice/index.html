@@ -112,7 +112,7 @@ async function ydPut(p,text){
 }
 function loginScreen(msg){
  NAV.hidden=true;document.getElementById("sync").hidden=true;head("Автосервис","через Яндекс.Диск");
- const cid=LSg("rr_ydClient","")||"cf8f5ded89f24b56b2b12d3f4c1ebe90";
+ let cid=LSg("rr_ydClient","");if(!cid||cid==="cf8f5ded89f24b56b2b12d3f4c1ebe90")cid="d1fa202c088a4900a9f5b356a5e0c8f1";
  const back=new URL("../",location.href).href;
  M.innerHTML=`<p class="empty">${esc(msg||"Нужно один раз войти в Яндекс.Диск.")}<br><br>Вход общий со «Справочником ремонта»: после входа откроется справочник - вернитесь сюда.</p>
   <a class="btn" href="https://oauth.yandex.ru/authorize?response_type=token&force_confirm=yes&client_id=${encodeURIComponent(cid)}&redirect_uri=${encodeURIComponent(back)}">Войти в Яндекс</a>

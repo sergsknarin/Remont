@@ -1,6 +1,6 @@
 // Офлайн-кэш (0.16.1). Код программы — сначала из сети (обновления приходят сразу), без сети — из кэша.
 // Базы, библиотеки и PDF (data/, lib/, docs/) — из кэша (большие, меняются редко). Чужие адреса (Яндекс) не трогаем.
-const CACHE = 'repair-ref-0.17.1';
+const CACHE = 'repair-ref-0.17.2';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'photos.js', 'errors.js', 'obdcodes.js', 'data/obd.js', 'data/errors.js', 'import.js', 'docs.js', 'docadd.js', 'to.js', 'backup.js', 'case.js', 'sync.js', 'data/to.js', 'data/docs.js', 'data/docs-pages.js', 'lib/pdf.js', 'lib/pdf.worker.js', 'data/base.js', 'manifest.json', 'icon.svg', 'icon-180.png'];
 const BIG = /\/(data|lib|docs)\/|icon/;
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => Promise.all(FILES.map(f => fetch(new Request(f, { cache: 'reload' })).then(r => r.ok && c.put(f, r)).catch(() => {}))))); self.skipWaiting(); });
