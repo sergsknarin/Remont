@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Автосервис">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<title>Автосервис</title>
+<!-- sergsknarin Автосервис - телефон через Яндекс.Диск (этап 2).
+     Данные: app:/autoservice/data.json (выгружает программа на ПК, патч 0.33.38+).
+     Новое с телефона: app:/autoservice/inbox/*.json - ПК забирает и вносит в базу.
+     Вход в Яндекс - общий со «Справочником ремонта» (тот же сайт, ключ rr_ydToken). -->
+<style>
+:root{--ph:#f2f2f7;--card:#fff;--fg:#111;--mut:#6e6e73;--sep:#d1d1d6;--tint:#0a64d6;--ok:#2e9d4b;--warn:#d97706;--bad:#d23b3b;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--ph:#000;--card:#1c1c1e;--fg:#f2f2f7;--mut:#98989f;--sep:#38383a;--tint:#4b9bff;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ph);color:var(--fg);font:16px -apple-system,"SF Pro Text",Roboto,Arial,sans-serif;display:flex;flex-direction:column;-webkit-tap-highlight-color:transparent}
+.top{padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right)) 6px max(16px,env(safe-area-inset-left))}
+.top .t{font-size:28px;font-weight:700;line-height:1.15}
+.top .s{font-size:13px;color:var(--mut);min-height:16px}
+.top .back{color:var(--tint);font-size:16px;background:none;border:0;padding:0 0 4px;cursor:pointer}
+.sync{font-size:12px;color:var(--mut);display:flex;gap:8px;align-items:center;margin-top:2px}
+.sync button{background:none;border:0;color:var(--tint);font:12px inherit;font-family:inherit;padding:0;cursor:pointer}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 max(12px,env(safe-area-inset-right)) 16px max(12px,env(safe-area-inset-left))}
+nav{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--sep);background:var(--card);padding:6px 0 calc(env(safe-area-inset-bottom,0px) + 6px)}
+nav button{background:none;border:0;color:var(--mut);font:11px inherit;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:2px 0}
+nav button b{font-size:21px;font-weight:400;line-height:1}
+nav button.cur{color:var(--tint)}
+.blk{background:var(--card);border-radius:12px;margin-top:10px;overflow:hidden}
+.bh{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;padding:14px 4px 0}
+.row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--sep);min-height:44px}
+.row:first-child{border-top:0}
+.row.tap{cursor:pointer}
+.row .m{flex:1;min-width:0}
+.row .m div:first-child{font-size:16px}
+.row .m div+div{font-size:13px;color:var(--mut);overflow:hidden;text-overflow:ellipsis}
+.row .r{font-size:14px;color:var(--mut);white-space:nowrap;text-align:right}
+.time{font-variant-numeric:tabular-nums;font-weight:600;min-width:46px}
+.pill{flex:none;font-size:11px;padding:3px 8px;border-radius:9px;color:#fff;background:var(--tint);white-space:nowrap}
+.pill.ok{background:var(--ok)}.pill.w{background:var(--warn)}.pill.g{background:var(--mut)}
+.days{display:flex;gap:6px;overflow-x:auto;padding:8px 2px 2px}
+.days button{flex:1 0 42px;text-align:center;padding:6px 0;border-radius:10px;background:var(--card);font:12px inherit;font-family:inherit;color:var(--mut);border:0;cursor:pointer}
+.days button b{display:block;font-size:17px;color:var(--fg)}
+.days button i{display:block;font-style:normal;font-size:10px;height:12px;color:var(--tint)}
+.days button.cur{background:var(--tint);color:#fff}.days button.cur b,.days button.cur i{color:#fff}
+.wk{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.wk button{background:none;border:0;color:var(--tint);font:15px inherit;font-family:inherit;padding:6px 4px;cursor:pointer}
+input[type=search]{width:100%;font:17px inherit;font-family:inherit;padding:11px 12px;border-radius:10px;border:0;background:var(--card);color:var(--fg);margin-top:10px;-webkit-appearance:none}
+.btn{display:block;width:100%;text-align:center;background:var(--tint);color:#fff;border-radius:12px;padding:13px;font:600 16px inherit;font-family:inherit;border:0;margin-top:14px;cursor:pointer;text-decoration:none}
+.btn.sec{background:var(--card);color:var(--tint)}
+.btn:disabled{opacity:.5}
+.call{color:var(--ok);font-size:22px;text-decoration:none;padding:4px}
+.fld{padding:9px 14px;border-top:1px solid var(--sep)}
+.fld:first-child{border-top:0}
+.fld div:first-child{font-size:12px;color:var(--mut)}
+.fld div+div{font-size:16px;word-break:break-word}
+.det{font-size:13px;color:var(--mut);margin-top:3px}
+.empty{color:var(--mut);text-align:center;padding:28px 10px;font-size:15px;line-height:1.45}
+.err{color:var(--bad);font-size:14px;margin-top:10px;min-height:18px}
+.frm label{display:block;font-size:12px;color:var(--mut);padding:9px 14px 0}
+.frm input,.frm select,.frm textarea{width:100%;border:0;background:none;color:var(--fg);font:17px inherit;font-family:inherit;padding:2px 14px 10px;margin:0;border-bottom:1px solid var(--sep);border-radius:0;-webkit-appearance:none}
+.frm textarea{min-height:70px;resize:vertical}
+.pick{padding:4px 14px 12px;font-size:17px;border-bottom:1px solid var(--sep);cursor:pointer;color:var(--tint)}
+a.site{color:inherit;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="top"><button class="back" id="back" hidden>‹ Назад</button><div class="t" id="title">Автосервис</div><div class="s" id="sub"></div>
+ <div class="sync" id="sync" hidden><span id="syncTxt"></span><button id="syncBtn">Обновить</button></div></div>
+<main id="main"></main>
+<nav id="nav" hidden>
+  <button data-t="cal"><b>📅</b>Записи</button>
+  <button data-t="cli"><b>👤</b>Клиенты</button>
+  <button data-t="car"><b>🚗</b>Авто</button>
+  <button data-t="find"><b>🔍</b>Поиск</button>
+  <button data-t="add"><b>＋</b>Новая</button>
+</nav>
+<script>
+"use strict";
+const API="https://cloud-api.yandex.net/v1/disk", DIR="app:/autoservice";
+const M=document.getElementById("main"),T=document.getElementById("title"),SUB=document.getElementById("sub"),NAV=document.getElementById("nav"),BACK=document.getElementById("back");
+const LSg=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const LSs=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const tok=()=>LSg("rr_ydToken","");
+let D=null,tab="cal",day=new Date(),carId=LSg("as_car",null),cliQ="",findQ="",backTo=null,sel=null;
+let pend=LSg("as_pending",[]);   // отправлено с телефона, ПК ещё не внёс
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const dmy=s=>s&&s.length>=10?s.slice(8,10)+"."+s.slice(5,7)+"."+s.slice(0,4):"";
+const norm=s=>String(s||"").toLowerCase().replace(/ё/g,"е").replace(/[\s\-.\/]/g,"");
+const WD=["Вс","Пн","Вт","Ср","Чт","Пт","Сб"],WDL=["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"],MON=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+function tel(p){const d=String(p||"").replace(/[^\d+]/g,"");return d?`<a class="call" href="tel:${esc(d)}" aria-label="Позвонить">📞</a>`:""}
+function pill(s){const c=/выполн|закрыт|выдан/i.test(s)?"ok":/работ/i.test(s)?"w":/отмен|ждёт/i.test(s)?"g":"";return `<span class="pill ${c}">${esc(s==="Запланирована"?"План":s)}</span>`}
+function head(t,s,back){T.textContent=t;SUB.textContent=s||"";BACK.hidden=!back;backTo=back||null}
+BACK.onclick=()=>{if(backTo)backTo()};
+
+// ---------- Яндекс.Диск ----------
+async function yd(path,opt={}){
+ const r=await fetch(API+path,{...opt,headers:{Authorization:"OAuth "+tok(),...(opt.headers||{})}});
+ if(r.status===401){LSs("rr_ydToken","");throw new Error("login")}
+ return r;
+}
+async function ydGetJson(p){const r=await yd("/resources/download?path="+encodeURIComponent(p));if(r.status===404)return null;if(!r.ok)throw new Error("Диск "+r.status);const{href}=await r.json();const f=await fetch(href);if(!f.ok)throw new Error("Диск: файл "+f.status);return f.json()}
+async function ydPut(p,text){
+ let r=await yd("/resources/upload?overwrite=true&path="+encodeURIComponent(p));
+ if(r.status===409){await yd("/resources?path="+encodeURIComponent(DIR),{method:"PUT"});await yd("/resources?path="+encodeURIComponent(DIR+"/inbox"),{method:"PUT"});r=await yd("/resources/upload?overwrite=true&path="+encodeURIComponent(p))}
+ if(!r.ok)throw new Error("Диск: загрузка "+r.status);const{href}=await r.json();
+ const u=await fetch(href,{method:"PUT",body:new Blob([text],{type:"application/json"})});if(!u.ok&&u.status!==201&&u.status!==202)throw new Error("Диск: запись "+u.status);
+}
+function loginScreen(msg){
+ NAV.hidden=true;document.getElementById("sync").hidden=true;head("Автосервис","через Яндекс.Диск");
+ const cid=LSg("rr_ydClient","")||"cf8f5ded89f24b56b2b12d3f4c1ebe90";
+ const back=new URL("../",location.href).href;
+ M.innerHTML=`<p class="empty">${esc(msg||"Нужно один раз войти в Яндекс.Диск.")}<br><br>Вход общий со «Справочником ремонта»: после входа откроется справочник - вернитесь сюда.</p>
+  <a class="btn" href="https://oauth.yandex.ru/authorize?response_type=token&force_confirm=yes&client_id=${encodeURIComponent(cid)}&redirect_uri=${encodeURIComponent(back)}">Войти в Яндекс</a>
+  <button class="btn sec" onclick="location.reload()">Я уже вошёл - обновить</button>`;
+}
+async function load(force){
+ if(!tok()){loginScreen();return false}
+ const cached=LSg("as_data",null);
+ if(cached&&!D){D=cached;showSync()}
+ if(!force&&D&&Date.now()-(LSg("as_loaded",0))<60000)return true;
+ setSync("Загрузка с Диска…");
+ try{const j=await ydGetJson(DIR+"/data.json");
+  if(!j){if(!D){NAV.hidden=true;head("Автосервис","");M.innerHTML=`<p class="empty">На Диске пока нет данных автосервиса.<br><br>Включите выгрузку в программе на компьютере:<br>Настройки → «Телефон» → «Через Яндекс.Диск» (патч 0.33.38).</p><button class="btn sec" onclick="location.reload()">Обновить</button>`;return false}}
+  else{D=j;LSs("as_data",j);LSs("as_loaded",Date.now());
+   const ids=new Set(D.appliedInbox||[]);pend=pend.filter(p=>!ids.has(p.file));LSs("as_pending",pend)}
+  showSync();return true}
+ catch(e){if(e.message==="login"){loginScreen("Вход в Яндекс истёк - войдите заново.");return false}
+  setSync("Нет связи с Диском - показаны данные на "+(D?fmtTime(D.exported):"—"));return !!D}
+}
+function fmtTime(s){if(!s)return"—";const d=new Date(s.replace(" ","T"));return isNaN(d)?s:d.toLocaleString("ru",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
+function setSync(t){document.getElementById("sync").hidden=false;document.getElementById("syncTxt").textContent=t}
+function showSync(){setSync("Данные с ПК на "+fmtTime(D&&D.exported)+(pend.length?" · ждут ПК: "+pend.length:""))}
+document.getElementById("syncBtn").onclick=async()=>{await load(true);go(tab)};
+
+// ---------- выборки из выгрузки ----------
+const carById=id=>D.cars.find(c=>String(c.id)===String(id));
+const cliById=id=>D.clients.find(c=>String(c.id)===String(id));
+const carTitle=c=>c?[(c.brand+" "+c.model).trim(),c.plate].filter(Boolean).join(" · "):"";
+function pendingAppts(d){return pend.filter(p=>p.type==="appt"&&p.date===d).map(p=>({time:p.time,status:"Ждёт ПК",car:p.title||"",client:"",reason:p.reason,post:(D.posts.find(x=>String(x.id)===String(p.post_id))||{}).name||"",phone:""}))}
+
+// ---------- экраны ----------
+function go(t){tab=t;for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t===t);M.scrollTop=0;({cal,cli,car:()=>car(carId),find,add:()=>add()})[t]()}
+for(const b of NAV.children)b.onclick=()=>go(b.dataset.t);
+function cal(){
+ head("Записи",WDL[day.getDay()]+", "+day.getDate()+" "+MON[day.getMonth()]);
+ const mon=new Date(day);mon.setDate(day.getDate()-((day.getDay()+6)%7));
+ let h=`<div class="wk"><button id="pw1">‹ Неделя</button><button id="td">Сегодня</button><button id="nw1">Неделя ›</button></div><div class="days">`;
+ for(let i=0;i<7;i++){const x=new Date(mon);x.setDate(mon.getDate()+i);const s=iso(x);const n=D.appts.filter(a=>a.start.slice(0,10)===s).length+pendingAppts(s).length;
+  h+=`<button data-d="${s}" class="${s===iso(day)?"cur":""}">${WD[x.getDay()]}<b>${x.getDate()}</b><i>${n||""}</i></button>`}
+ const items=D.appts.filter(a=>a.start.slice(0,10)===iso(day)).map(a=>({...a,time:a.start.slice(11,16),car:carTitle(carById(a.car)),client:(cliById(a.client)||{}).name||"",phone:(cliById(a.client)||{}).phone||"",post:(D.posts.find(p=>String(p.id)===String(a.post))||{}).name||""}))
+  .concat(pendingAppts(iso(day))).sort((x,y)=>x.time.localeCompare(y.time));
+ h+=`</div><div class="bh">${items.length?"Записей: "+items.length:""}</div>`;
+ if(!items.length)h+=`<p class="empty">На этот день записей нет</p>`;
+ else{h+=`<div class="blk">`;for(const a of items)h+=`<div class="row tap" data-car="${a.id&&a.car?esc(D.appts.find(x=>x.id===a.id).car):""}"><span class="time">${esc(a.time)}</span><div class="m"><div>${esc(a.car||"Без авто")}</div><div>${esc([a.client,a.reason,a.post].filter(Boolean).join(" · "))}</div></div>${pill(a.status)}${tel(a.phone)}</div>`;h+=`</div>`}
+ M.innerHTML=h;
+ M.querySelectorAll(".days button").forEach(b=>b.onclick=()=>{day=new Date(b.dataset.d+"T12:00");cal()});
+ pw1.onclick=()=>{day.setDate(day.getDate()-7);cal()};nw1.onclick=()=>{day.setDate(day.getDate()+7);cal()};td.onclick=()=>{day=new Date();cal()};
+ M.querySelectorAll(".row.tap").forEach(r=>r.onclick=e=>{if(e.target.closest("a"))return;if(r.dataset.car)openCar(r.dataset.car,()=>go("cal"))});
+}
+function clientsMatching(q){
+ const n=norm(q),dg=q.replace(/\D/g,"");
+ const lastVisit={};for(const a of D.appts)if(a.client&&(!lastVisit[a.client]||a.start>lastVisit[a.client]))lastVisit[a.client]=a.start;
+ return D.clients.filter(c=>{if(!n)return true;if(norm(c.name).includes(n))return true;if(dg.length>=3&&String(c.phone).replace(/\D/g,"").includes(dg))return true;
+  return D.cars.some(x=>String(x.client)===String(c.id)&&norm(carTitle(x)+x.vin).includes(n))})
+  .sort((a,b)=>String(lastVisit[b.id]||"").localeCompare(String(lastVisit[a.id]||""))).slice(0,80);
+}
+let cliTimer;
+function cli(){
+ head("Клиенты",D.clients.length+" клиентов");
+ M.innerHTML=`<input type="search" id="cq" placeholder="Имя, телефон, госномер, VIN" value="${esc(cliQ)}"><div id="cl"></div>`;
+ cq.oninput=()=>{cliQ=cq.value;clearTimeout(cliTimer);cliTimer=setTimeout(cliList,200)};cliList();
+}
+function cliList(){
+ const box=document.getElementById("cl");if(!box)return;const list=clientsMatching(cliQ);
+ if(!list.length){box.innerHTML=`<p class="empty">Никого не нашлось</p>`;return}
+ let h=`<div class="blk">`;for(const c of list){const cars=D.cars.filter(x=>String(x.client)===String(c.id));
+  h+=`<div class="row tap" data-car="${cars.length?cars[0].id:""}"><div class="m"><div>${esc(c.name||"Без имени")}</div><div>${cars.map(x=>`<span class="cl" data-car="${x.id}">${esc(carTitle(x))}</span>`).join(", ")||esc(c.phone)}</div></div>${tel(c.phone)}</div>`}
+ box.innerHTML=h+`</div>`;
+ box.querySelectorAll(".row.tap").forEach(r=>r.onclick=e=>{if(e.target.closest("a"))return;const s=e.target.closest(".cl");const id=s?s.dataset.car:r.dataset.car;if(id)openCar(id,()=>go("cli"))});
+}
+function openCar(id,back){carId=String(id);LSs("as_car",carId);tab="car";for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t==="car");car(carId,back)}
+function car(id,back){
+ const c=id&&carById(id);
+ if(!c){head("Авто","");M.innerHTML=`<p class="empty">Выберите машину в «Записях», «Клиентах» или найдите в «Поиске».</p>`;return}
+ const cl=cliById(c.client)||{};const vis=D.appts.filter(a=>String(a.car)===String(c.id)).sort((a,b)=>b.start.localeCompare(a.start));
+ const km=(vis.find(a=>a.km>0)||{}).km||0;const spent=vis.reduce((s,a)=>s+(+a.sum||0),0);
+ head(c.plate||(c.brand+" "+c.model),[c.plate?(c.brand+" "+c.model).trim():"",c.year,c.engine].filter(Boolean).join(" · "),back);
+ let h=`<div class="blk"><div class="fld"><div>VIN</div><div>${esc(c.vin||"—")}</div></div><div class="fld"><div>Владелец</div><div>${esc(cl.name||"—")} ${tel(cl.phone)}</div></div><div class="fld"><div>Пробег</div><div>${km?km.toLocaleString("ru")+" км":"нет данных"}</div></div></div>`;
+ h+=`<div class="bh">Сводка</div><div class="blk"><div class="fld"><div>Визитов / потрачено</div><div>${vis.length} · ${Math.round(spent).toLocaleString("ru")} ₽</div></div></div>`;
+ const recs=vis.filter(a=>a.rec).slice(0,3).map(a=>({when:dmy(a.start),text:a.rec})).concat((D.est||[]).filter(e=>String(e.car)===String(c.id)).map(e=>({when:"смета",text:e.name}))).concat(pend.filter(p=>p.type==="recommend"&&String(p.car_id)===String(c.id)).map(p=>({when:"ждёт ПК",text:p.text})));
+ if(recs.length){h+=`<div class="bh">Рекомендации</div><div class="blk">`;for(const r of recs)h+=`<div class="row"><div class="m"><div>${esc(r.text)}</div><div>${esc(r.when)}</div></div></div>`;h+=`</div>`}
+ h+=`<div class="bh">История</div>`;
+ if(!vis.length)h+=`<p class="empty">Визитов ещё не было</p>`;
+ else{h+=`<div class="blk">`;for(const v of vis){const det=[v.works,v.parts].filter(Boolean).join(" · ");h+=`<div class="row"><div class="m"><div>${esc(v.reason||"Визит")}</div>${det?`<div class="det">${esc(det)}</div>`:""}</div><span class="r">${dmy(v.start)}<br>${v.km?v.km.toLocaleString("ru")+" км<br>":""}${Math.round(+v.sum||0).toLocaleString("ru")} ₽</span></div>`}h+=`</div>`}
+ h+=`<button class="btn" id="cAppt">＋ Записать на сервис</button><button class="btn sec" id="cRec">Добавить рекомендацию</button><div id="recBox"></div>`;
+ M.innerHTML=h;
+ cAppt.onclick=()=>{sel={car_id:c.id,client_id:c.client,title:carTitle(c)+(cl.name?" · "+cl.name:"")};go("add")};
+ cRec.onclick=()=>{recBox.innerHTML=`<div class="blk frm"><label for="rt">Что рекомендуете</label><textarea id="rt" placeholder="Колодки передние 30%, менять через 5 т.км"></textarea></div><button class="btn" id="rs">Сохранить рекомендацию</button><div class="err" id="re"></div>`;rt.focus();
+  rs.onclick=async()=>{if(!rt.value.trim())return;rs.disabled=true;try{await send({type:"recommend",car_id:c.id,text:rt.value.trim()});car(c.id,back)}catch(e){re.textContent=e.message;rs.disabled=false}}};
+}
+let findTimer;
+function find(){
+ head("Поиск","VIN, госномер, артикул");
+ M.innerHTML=`<input type="search" id="fq" placeholder="VIN, госномер или артикул" value="${esc(findQ)}" autocapitalize="characters"><div id="fr"></div>`;
+ fq.oninput=()=>{findQ=fq.value;clearTimeout(findTimer);findTimer=setTimeout(findList,250)};findList();
+}
+function findList(){
+ const box=document.getElementById("fr");if(!box)return;const q=findQ.trim(),key=q.replace(/\s/g,"").toUpperCase();
+ if(!q){box.innerHTML=`<p class="empty">Введите VIN (17 знаков), часть госномера или артикул запчасти.</p>`;return}
+ let h="";
+ if(key.length===17){const same=D.cars.filter(c=>c.vin&&c.vin.replace(/\s/g,"").toUpperCase().slice(0,8)===key.slice(0,8)&&c.model);
+  const cnt={};for(const c of same){const k=(c.brand+" "+c.model).trim()+(c.engine?", "+c.engine:"");cnt[k]=(cnt[k]||0)+1}
+  const best=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+  h+=`<div class="bh">VIN</div><div class="blk"><div class="fld"><div>Год (10-й знак)</div><div>${esc(vinYear(key)||"—")}</div></div><div class="fld"><div>По вашей базе</div><div>${best?esc(best[0])+" ("+best[1]+" авто)":"похожих машин нет"}</div></div></div>`}
+ const n=norm(q);const cars=key.length>=3?D.cars.filter(c=>norm(c.plate+c.vin).includes(n)).slice(0,30):[];
+ if(cars.length){h+=`<div class="bh">Машины в базе</div><div class="blk">`;for(const c of cars)h+=`<div class="row tap" data-car="${c.id}"><div class="m"><div>${esc(carTitle(c))}</div><div>${esc((cliById(c.client)||{}).name||"")}</div></div><span class="r">›</span></div>`;h+=`</div>`}
+ if((D.sites||[]).length){h+=`<div class="bh">Найти «${esc(q)}» на сайтах</div><div class="blk">`;for(const s of D.sites)h+=`<a class="site" href="${esc(s.url.replace("{q}",encodeURIComponent(q)))}" target="_blank" rel="noopener"><div class="row tap"><div class="m"><div>${esc(s.name)}</div></div><span class="r">›</span></div></a>`;h+=`</div>`}
+ box.innerHTML=h||`<p class="empty">Ничего не нашлось</p>`;
+ box.querySelectorAll(".row.tap[data-car]").forEach(r=>r.onclick=()=>openCar(r.dataset.car,()=>go("find")));
+}
+function vinYear(v){const c="ABCDEFGHJKLMNPRSTVWXY123456789",i=c.indexOf(v[9]);if(i<0)return"";let y=1980+i;while(y+30<=new Date().getFullYear()+1)y+=30;return String(y)}
+
+// ---------- новое с телефона -> app:/autoservice/inbox/ ----------
+async function send(o){
+ const file=Date.now()+"-"+Math.random().toString(36).slice(2,8)+".json";
+ const msg={...o,file,at:new Date().toISOString(),from:"телефон"};
+ await ydPut(DIR+"/inbox/"+file,JSON.stringify(msg));
+ pend.push(msg);LSs("as_pending",pend);showSync();return msg;
+}
+function add(){
+ head("Новая запись","попадёт в программу, когда ПК включён");
+ const now=new Date();let hh=now.getHours()+1;if(hh<8||hh>19)hh=9;
+ M.innerHTML=`<div class="blk frm">
+  <label for="fd">Дата</label><input type="date" id="fd" value="${iso(day)}">
+  <label for="ft">Время</label><input type="time" id="ft" value="${String(hh).padStart(2,"0")}:00" step="900">
+  <label for="fdur">Длительность</label><select id="fdur"><option value="30">30 мин</option><option value="60" selected>1 час</option><option value="90">1,5 часа</option><option value="120">2 часа</option><option value="180">3 часа</option><option value="240">4 часа</option><option value="480">весь день</option></select>
+  <label for="fp">Пост</label><select id="fp"><option value="">Без поста</option>${D.posts.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select>
+  <label>Клиент и автомобиль</label><div class="pick" id="fc">${sel?esc(sel.title):"Выбрать ›"}</div>
+  <label for="fk">Пробег, км</label><input type="text" id="fk" inputmode="numeric" placeholder="км">
+  <label for="fr2">Причина обращения</label><textarea id="fr2" placeholder="Что беспокоит, какие работы"></textarea></div>
+  <button class="btn" id="fs">Сохранить запись</button><div class="err" id="fe"></div>`;
+ fc.onclick=pickCar;fs.onclick=saveAppt;
+}
+function busyPost(date,time,dur,post){
+ if(!post)return null;const s=date+" "+time,e=new Date(new Date(date+"T"+time).getTime()+dur*60000);const es=iso(e)+" "+String(e.getHours()).padStart(2,"0")+":"+String(e.getMinutes()).padStart(2,"0");
+ return D.appts.find(a=>String(a.post)===String(post)&&a.start<es&&a.end>s&&!/отмен/i.test(a.status));
+}
+async function saveAppt(force){
+ const o={type:"appt",date:fd.value,time:ft.value,dur:+fdur.value,post_id:fp.value,km:fk.value.replace(/\D/g,""),reason:fr2.value.trim()};
+ if(sel){o.car_id=sel.car_id||"";o.client_id=sel.client_id||"";o.client_tmp=sel.client_tmp||"";o.title=sel.title}
+ if(!o.date||!o.time){fe.textContent="Укажите дату и время";return}
+ if(!sel&&!o.reason){fe.textContent="Выберите машину или напишите причину";return}
+ const b=force===true?null:busyPost(o.date,o.time,o.dur,o.post_id);
+ if(b){fe.innerHTML=`Пост занят: ${esc(b.start.slice(11,16))}-${esc(b.end.slice(11,16))} ${esc(carTitle(carById(b.car)))}. <button class="btn sec" id="ff">Всё равно записать</button>`;ff.onclick=()=>saveAppt(true);return}
+ fs.disabled=true;fe.textContent="Отправка…";
+ try{await send(o);sel=null;day=new Date(o.date+"T12:00");M.innerHTML=`<p class="empty" style="color:var(--ok)">✓ Отправлено на Яндекс.Диск.<br>Запись появится в программе, когда компьютер включён.</p>`;setTimeout(()=>go("cal"),1400)}
+ catch(e){fs.disabled=false;fe.textContent=e.message==="login"?"Вход в Яндекс истёк":"Нет связи: "+e.message}
+}
+let pickQ="";
+function pickCar(){
+ const keep={d:fd.value,t:ft.value,dur:fdur.value,p:fp.value,k:fk.value,r:fr2.value};
+ head("Клиент и авто","",()=>{add();restore(keep)});
+ M.innerHTML=`<input type="search" id="pq" placeholder="Имя, телефон, госномер, VIN" value="${esc(pickQ)}"><button class="btn sec" id="pn">＋ Новый клиент и авто</button><div id="pl"></div>`;
+ pn.onclick=()=>newClient(keep);
+ const list=()=>{const box=document.getElementById("pl");if(!box)return;const cl=clientsMatching(pickQ);let h=`<div class="blk">`;
+  for(const c of cl){const cars=D.cars.filter(x=>String(x.client)===String(c.id));if(!cars.length)h+=`<div class="row tap" data-cl="${c.id}" data-t="${esc(c.name)}"><div class="m"><div>${esc(c.name)}</div><div>без машины</div></div></div>`;
+   for(const x of cars)h+=`<div class="row tap" data-car="${x.id}" data-cl="${c.id}" data-t="${esc(carTitle(x)+" · "+c.name)}"><div class="m"><div>${esc(carTitle(x))}</div><div>${esc(c.name)} ${esc(c.phone)}</div></div></div>`}
+  box.innerHTML=cl.length?h+`</div>`:`<p class="empty">Никого не нашлось</p>`;
+  box.querySelectorAll(".row.tap").forEach(r=>r.onclick=()=>{sel={car_id:r.dataset.car||"",client_id:r.dataset.cl||"",title:r.dataset.t};add();restore(keep);fc.textContent=sel.title})};
+ pq.oninput=()=>{pickQ=pq.value;list()};list();
+}
+function restore(k){if(!window.fd)return;fd.value=k.d;ft.value=k.t;fdur.value=k.dur;fp.value=k.p;fk.value=k.k;fr2.value=k.r}
+function newClient(keep){
+ head("Новый клиент","и его автомобиль",()=>pickCar());
+ M.innerHTML=`<div class="blk frm"><label for="nn">Имя</label><input type="text" id="nn" autocapitalize="words">
+  <label for="np">Телефон</label><input type="tel" id="np" placeholder="+7">
+  <label for="nb">Марка</label><input type="text" id="nb" autocapitalize="words"><label for="nm">Модель</label><input type="text" id="nm">
+  <label for="nl">Госномер</label><input type="text" id="nl" autocapitalize="characters"><label for="nv">VIN</label><input type="text" id="nv" autocapitalize="characters" maxlength="17"></div>
+  <button class="btn" id="ns">Сохранить клиента</button><div class="err" id="ne"></div>`;
+ ns.onclick=async()=>{if(!nn.value.trim()&&!np.value.trim()){ne.textContent="Укажите имя или телефон";return}ns.disabled=true;ne.textContent="Отправка…";
+  const tmp="tmp-"+Date.now();
+  try{await send({type:"client",tmp,name:nn.value.trim(),phone:np.value.trim(),brand:nb.value.trim(),model:nm.value.trim(),plate:nl.value.trim().toUpperCase(),vin:nv.value.replace(/\s/g,"").toUpperCase()});
+   sel={client_tmp:tmp,title:[nl.value.toUpperCase(),(nb.value+" "+nm.value).trim(),nn.value].filter(Boolean).join(" · ")+" (новый)"};add();restore(keep);fc.textContent=sel.title}
+  catch(e){ne.textContent="Нет связи: "+e.message;ns.disabled=false}};
+}
+
+// ---------- запуск ----------
+(async()=>{if(await load(false)){NAV.hidden=false;go("cal")}})();
+document.addEventListener("visibilitychange",async()=>{if(document.visibilityState==="visible"&&tok()&&D){await load(false);if(["cal","cli"].includes(tab))go(tab)}});
+</script>
+</body></html>
