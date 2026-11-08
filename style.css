@@ -170,3 +170,8 @@ details summary{cursor:pointer;color:var(--acc);font-size:14px;padding:6px 0}
 
 /* Яндекс.Диск (0.17.0) */
 .yd{font-size:12px;margin-left:6px;color:#9fb3c8}.yd.ok{color:#7fd38a}.yd.err{color:#ff8a80}.yd.warn{color:#ffd27f}
+
+/* 0.18.0: двигатель, видео */
+.engsel{display:flex;gap:8px;align-items:center;margin:8px 0}.engsel label{white-space:nowrap}.engsel select{flex:1;font:inherit;padding:6px;border-radius:8px}
+.vids{display:flex;flex-direction:column;gap:6px}.vid{text-align:left;font:inherit;padding:10px;border-radius:8px;border:1px solid #8884;background:none;color:inherit}
+.vid span{float:right;opacity:.6;font-size:.85em}.vbox video{width:100%;max-height:70vh;border-radius:8px;background:#000}

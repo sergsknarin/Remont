@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.17.3';
+const APP_VERSION = '0.18.0';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -67,9 +67,9 @@ async function save() { if (!(await Store.set('db', DB))) toast('Не удало
 /* ---------- Работы для марки/модели ---------- */
 // Общие шаблоны + работы конкретной марки (без модели) + работы модели
 // Своя работа с полем overrides заменяет общую; brand.hidden — скрытые у марки общие работы
-function worksFor(brandId, modelId) {
+function worksFor(brandId, modelId, engineId) {
   const b = findBrand(brandId), hidden = new Set((b && b.hidden) || []);
-  const own = DB.items.filter(i => i.brand === brandId && (!i.model || i.model === modelId));
+  const own = DB.items.filter(i => i.brand === brandId && (!i.model || i.model === modelId) && (!i.engine || i.engine === engineId)); // engine - вариант двигателя (0.18.0, как в программе для ПК)
   const over = new Map(own.filter(i => i.overrides).map(i => [i.overrides, i]));
   // изменённая для марки работа стоит на месте общей
   return DB.templates.filter(t => !hidden.has(t.id)).map(t => over.has(t.id) ? { ...over.get(t.id), src: 'own' } : { ...t, src: 'tpl' })
@@ -119,13 +119,15 @@ const findModel = (b, id) => b && b.models.find(m => m.id === id);
 
 /* ---------- Отрисовка ---------- */
 function ctx() {
-  const c = { brand: null, model: null, groups: [], work: null };
+  const c = { brand: null, model: null, engine: null, groups: [], work: null };
   for (const p of state.path) {
     if (p.type === 'brand') c.brand = findBrand(p.id);
     else if (p.type === 'model') c.model = findModel(c.brand, p.id);
     else if (p.type === 'group') c.groups.push(p.name);
     else if (p.type === 'work') c.work = p.id;
   }
+  // выбранный вариант двигателя модели (0.18.0) - запоминается для модели
+  if (c.model && (c.model.engines || []).length) { const e = LS.get('eng_' + c.model.id, null); c.engine = c.model.engines.some(x => x.id === e) ? e : null; }
   return c;
 }
 
@@ -154,7 +156,8 @@ function render() {
   }
   if (!c.brand) return renderBrands(v);
   if (c.brand.models.length && !c.model && !state.path.some(p => p.type === 'model')) return renderModels(v, c.brand);
-  const works = worksFor(c.brand.id, c.model && c.model.id);
+  let works = worksFor(c.brand.id, c.model && c.model.id, c.engine);
+  if (c.work && !works.some(w => w.id === c.work)) { const it = DB.items.find(i => i.id === c.work); if (it && it.engine) works = worksFor(c.brand.id, c.model && c.model.id, it.engine); }
   if (c.work) return renderWork(v, works.find(w => w.id === c.work), c);
   renderGroup(v, works, c.groups);
 }
@@ -257,10 +260,11 @@ const workFields = groups => [
   { k: 'note', label: 'Примечание', type: 'area' }
 ];
 async function addWork(c, groupPrefix) {
-  const where = c.brand.name + (c.model ? ' ' + c.model.name : '');
+  const eng = c.engine && c.model ? (c.model.engines || []).find(e => e.id === c.engine) : null;
+  const where = c.brand.name + (c.model ? ' ' + c.model.name : '') + (eng ? ' · ⚙ ' + eng.name : '');
   const r = await formBox('Новая работа · ' + where, workFields(allGroups(worksFor(c.brand.id, c.model && c.model.id))), { group: groupPrefix });
   if (!r) return;
-  DB.items.push({ id: newId('w'), brand: c.brand.id, model: c.model ? c.model.id : null,
+  DB.items.push({ id: newId('w'), brand: c.brand.id, model: c.model ? c.model.id : null, ...(eng ? { engine: eng.id } : {}),
     name: r.name, group: r.group || 'Прочее', hours: num(r.hours), price: num(r.price), note: r.note });
   await save(); render(); toast('Работа добавлена в «' + (r.group || 'Прочее') + '»');
 }
@@ -321,9 +325,12 @@ function renderGroup(v, works, groups) {
   }
   const c = ctx(), adds = [['work', 'Работа']];
   if (!groups.length) html = docsRow(c, h) + html;
+  if (!groups.length && c.model && (c.model.engines || []).length) // варианты двигателя (0.18.0)
+    html = `<div class="engsel"><label for="engSel">⚙ Двигатель</label><select id="engSel"><option value="">Все двигатели (общие работы)</option>${c.model.engines.map(e => `<option value="${esc(e.id)}"${e.id === c.engine ? ' selected' : ''}>${esc(e.name)}</option>`).join('')}</select></div>` + html;
   if (!groups.length && !c.brand.models.length) adds.push(['model', 'Модель']);
   v.innerHTML = (html || '<div class="empty">Пусто</div>') + addBtns(adds);
   bindRows(v, h);
+  const es = v.querySelector('#engSel'); if (es) es.onchange = () => { LS.set('eng_' + c.model.id, es.value || null); render(); };
   bindAdds(v, { work: () => addWork(c, prefix), model: () => addModel(c.brand) });
 }
 
@@ -351,7 +358,7 @@ function renderWork(v, w, c) {
     ${s.photo ? `<button class="sth" data-sph="${s.photo}" aria-label="Фото к пункту"><img data-src="${s.photo}" alt=""></button>` : ''}
     ${ed ? `${sub ? '' : `<button class="mini" data-addsub="${s.id}" aria-label="Подпункт">+</button>`}<button class="mini" data-es="${s.id}" data-p="${parent || ''}" aria-label="Изменить">✎</button><button class="mini del" data-ds="${s.id}" data-p="${parent || ''}" aria-label="Удалить">✕</button>` : ''}</div>`;
   v.innerHTML = `<div class="card"><h1>${esc(w.name)}</h1>
-    <div class="meta">${esc(c.brand.name)}${c.model ? ' ' + esc(c.model.name) : ''} · ${esc(w.group)}${w.hours != null ? ' · ' + w.hours + ' н/ч' : ''}${w.price != null ? ' · ' + w.price + ' ₽' : ''}</div>
+    <div class="meta">${esc(c.brand.name)}${c.model ? ' ' + esc(c.model.name) : ''}${w.engine && c.model ? ' · ⚙ ' + esc(((c.model.engines || []).find(e => e.id === w.engine) || {}).name || '') : ''} · ${esc(w.group)}${w.hours != null ? ' · ' + w.hours + ' н/ч' : ''}${w.price != null ? ' · ' + w.price + ' ₽' : ''}</div>
     ${w.note ? `<div class="note">${esc(w.note)}</div>` : ''}
     <div class="sec"><h2>Инструкция</h2>${ed ? '<button class="mini" id="eInstr" aria-label="Изменить инструкцию">✎</button>' : ''}</div>
     <div class="instr">${w.instr ? esc(w.instr).replace(/\n/g, '<br>') : '<span class="muted">Нет. Нажмите «Править», чтобы добавить: куда войти, что сделать.</span>'}</div>
@@ -366,6 +373,7 @@ function renderWork(v, w, c) {
     ${ed ? '<button class="add" id="aParam">+ Параметр</button>' : ''}
     ${workCodesHtml(w, ed)}
     ${photosHtml(w)}
+    ${typeof videosHtml === 'function' ? videosHtml(w) : ''}
     <div class="meta">Источник: ${src}</div>
     <div class="btns"><button id="wMode" class="pri">${ed ? 'Готово' : 'Править'}</button><button id="wReset">Сбросить отметки</button></div>
     <div class="btns"><button id="wEdit">Название, раздел, норма</button><button id="wDel" class="danger">Удалить работу</button></div></div>`;
@@ -381,6 +389,7 @@ function renderWork(v, w, c) {
   const mut = async fn => { const o = await editable(w, c); if (!o) return; o.steps = o.steps || []; o.params = o.params || []; fn(o); await save(); render(); };
   const stepIn = (o, id, p) => p ? o.steps.find(s => s.id === p).sub : o.steps;
   bindPhotos(v, w, c, mut);
+  if (typeof bindVideos === 'function') bindVideos(v, w, mut);
   bindWorkCodes(v, w, c, mut);
   v.querySelectorAll('[data-sph]').forEach(b => b.onclick = () => viewPhoto(w, (w.photos || []).findIndex(p => p.id === b.dataset.sph), mut));
   if (!ed) return;
