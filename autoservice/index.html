@@ -165,11 +165,11 @@ function cal(){
   .concat(pendingAppts(iso(day))).sort((x,y)=>x.time.localeCompare(y.time));
  h+=`</div><div class="bh">${items.length?"Записей: "+items.length:""}</div>`;
  if(!items.length)h+=`<p class="empty">На этот день записей нет</p>`;
- else{h+=`<div class="blk">`;for(const a of items)h+=`<div class="row tap" data-car="${a.id&&a.car?esc(D.appts.find(x=>x.id===a.id).car):""}"><span class="time">${esc(a.time)}</span><div class="m"><div>${esc(a.car||"Без авто")}</div><div>${esc([a.client,a.reason,a.post].filter(Boolean).join(" · "))}</div></div>${pill(a.status)}${tel(a.phone)}</div>`;h+=`</div>`}
+ else{h+=`<div class="blk">`;for(const a of items)h+=`<div class="row tap" data-id="${a.id||""}"><span class="time">${esc(a.time)}</span><div class="m"><div>${esc(a.car||"Без авто")}</div><div>${esc([a.client,a.reason,a.post].filter(Boolean).join(" · "))}</div></div>${pill(a.status)}${tel(a.phone)}</div>`;h+=`</div>`}
  M.innerHTML=h;
  M.querySelectorAll(".days button").forEach(b=>b.onclick=()=>{day=new Date(b.dataset.d+"T12:00");cal()});
  pw1.onclick=()=>{day.setDate(day.getDate()-7);cal()};nw1.onclick=()=>{day.setDate(day.getDate()+7);cal()};td.onclick=()=>{day=new Date();cal()};
- M.querySelectorAll(".row.tap").forEach(r=>r.onclick=e=>{if(e.target.closest("a"))return;if(r.dataset.car)openCar(r.dataset.car,()=>go("cal"))});
+ M.querySelectorAll(".row.tap").forEach(r=>r.onclick=e=>{if(e.target.closest("a"))return;if(r.dataset.id)appt(r.dataset.id,()=>go("cal"))});
 }
 function clientsMatching(q){
  const n=norm(q),dg=q.replace(/\D/g,"");
@@ -226,12 +226,67 @@ function car(id,back){
  if(recs.length){h+=`<div class="bh">Рекомендации</div><div class="blk">`;for(const r of recs)h+=`<div class="row"><div class="m"><div>${esc(r.text)}</div><div>${esc(r.when)}</div></div></div>`;h+=`</div>`}
  h+=`<div class="bh">История</div>`;
  if(!vis.length)h+=`<p class="empty">Визитов ещё не было</p>`;
- else{h+=`<div class="blk">`;for(const v of vis){const det=[v.works,v.parts].filter(Boolean).join(" · ");h+=`<div class="row"><div class="m"><div>${esc(v.reason||"Визит")}</div>${det?`<div class="det">${esc(det)}</div>`:""}</div><span class="r">${dmy(v.start)}<br>${v.km?v.km.toLocaleString("ru")+" км<br>":""}${Math.round(+v.sum||0).toLocaleString("ru")} ₽</span></div>`}h+=`</div>`}
+ else{h+=`<div class="blk">`;for(const v of vis){const det=[v.works,v.parts].filter(Boolean).join(" · ");h+=`<div class="row tap" data-id="${v.id}"><div class="m"><div>${esc(v.reason||"Визит")}</div>${det?`<div class="det">${esc(det)}</div>`:""}</div><span class="r">${dmy(v.start)}<br>${v.km?v.km.toLocaleString("ru")+" км<br>":""}${Math.round(+v.sum||0).toLocaleString("ru")} ₽</span></div>`}h+=`</div>`}
  h+=`<button class="btn" id="cAppt">＋ Записать на сервис</button><button class="btn sec" id="cRec">Добавить рекомендацию</button><div id="recBox"></div>`;
  M.innerHTML=h;
+ M.querySelectorAll(".row.tap[data-id]").forEach(r=>r.onclick=()=>appt(r.dataset.id,()=>openCar(c.id,back)));
  cAppt.onclick=()=>{sel={car_id:c.id,client_id:c.client,title:carTitle(c)+(cl.name?" · "+cl.name:"")};go("add")};
  cRec.onclick=()=>{recBox.innerHTML=`<div class="blk frm"><label for="rt">Что рекомендуете</label><textarea id="rt" placeholder="Колодки передние 30%, менять через 5 т.км"></textarea></div><button class="btn" id="rs">Сохранить рекомендацию</button><div class="err" id="re"></div>`;rt.focus();
   rs.onclick=async()=>{if(!rt.value.trim())return;rs.disabled=true;try{await send({type:"recommend",car_id:c.id,text:rt.value.trim()});car(c.id,back)}catch(e){re.textContent=e.message;rs.disabled=false}}};
+}
+// ---------- запись: работы и запчасти (0.33.41) ----------
+const nh=x=>String(Math.round(x*100)/100).replace(".",",");
+function appt(id,back){
+ const a=D.appts.find(x=>String(x.id)===String(id));if(!a){back&&back();return}
+ const c=carById(a.car),cl=cliById(a.client)||{},post=(D.posts.find(p=>String(p.id)===String(a.post))||{}).name||"";
+ head(carTitle(c)||"Запись",dmy(a.start)+" "+a.start.slice(11,16)+(post?" · "+post:""),back);
+ const pi=pend.filter(p=>p.type==="item"&&String(p.appt_id)===String(a.id));
+ const lst=(txt,kind)=>{const rows=String(txt||"").split(", ").filter(Boolean).map(t=>`<div class="row"><div class="m"><div>${esc(t)}</div></div></div>`)
+   .concat(pi.filter(p=>p.kind===kind).map(p=>`<div class="row"><div class="m"><div>${esc(p.name+(p.brand?" ("+p.brand+")":"")+(kind==="part"&&+p.qty!==1?" ×"+p.qty:"")+(kind==="work"&&p.hours?" · "+nh(+p.hours)+" н/ч":""))}</div></div><span class="pill g">Ждёт ПК</span></div>`));
+   return rows.length?`<div class="blk">${rows.join("")}</div>`:`<p class="empty">Пока нет</p>`};
+ let h=`<div class="blk"><div class="fld"><div>Клиент</div><div>${esc(cl.name||"—")} ${tel(cl.phone)}</div></div><div class="fld"><div>Причина</div><div>${esc(a.reason||"—")}</div></div><div class="fld"><div>Статус</div><div>${pill(a.status)}</div></div></div>`;
+ h+=`<div class="bh">Работы</div>${lst(a.works,"work")}<button class="btn sec" id="aW">＋ Работа</button>`;
+ h+=`<div class="bh">Запчасти</div>${lst(a.parts,"part")}<button class="btn sec" id="aP">＋ Запчасть</button>`;
+ if(c)h+=`<button class="btn sec" id="aC">Карточка авто</button>`;
+ M.innerHTML=h;M.scrollTop=0;
+ aW.onclick=()=>itemPick("work",a,back);aP.onclick=()=>itemPick("part",a,back);
+ if(c)aC.onclick=()=>openCar(c.id,()=>appt(a.id,back));
+}
+let itemQ="";
+function itemPick(kind,a,back){
+ const W=kind==="work",cat=(W?D.cworks:D.cparts)||[];
+ head(W?"Добавить работу":"Добавить запчасть",carTitle(carById(a.car)),()=>appt(a.id,back));
+ M.innerHTML=`<input type="search" id="iq" placeholder="${W?"Название работы":"Название, артикул, производитель"}" value="${esc(itemQ)}"><button class="btn sec" id="iOwn">＋ ${W?"Своя работа":"Своя запчасть"}</button><div id="il"></div>`;
+ iOwn.onclick=()=>itemForm(kind,a,back,null);
+ const list=()=>{const box=document.getElementById("il");if(!box)return;
+  if(!cat.length){box.innerHTML=`<p class="empty">${D.cworks?"Справочник пуст":"Справочник с ПК не пришёл - обновите программу на ПК до 0.33.41"}. Можно добавить свою позицию.</p>`;return}
+  const n=norm(itemQ);const f=cat.filter(x=>!n||norm(x.name+" "+(x.art||"")+" "+(x.brand||"")).includes(n)).slice(0,60);
+  if(!f.length){box.innerHTML=`<p class="empty">Ничего не нашлось - добавьте как свою</p>`;return}
+  let h=`<div class="blk">`;for(const x of f)h+=`<div class="row tap" data-id="${x.id}"><div class="m"><div>${esc(x.name)}</div><div>${esc(W?(x.h?nh(x.h)+" н/ч":""):[x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div></div></div>`;
+  box.innerHTML=h+`</div>`;
+  box.querySelectorAll(".row.tap").forEach(r=>r.onclick=()=>itemForm(kind,a,back,cat.find(x=>String(x.id)===r.dataset.id)))};
+ iq.oninput=()=>{itemQ=iq.value;list()};list();
+}
+function itemForm(kind,a,back,x){
+ const W=kind==="work";
+ head(x?x.name:(W?"Своя работа":"Своя запчасть"),carTitle(carById(a.car)),()=>itemPick(kind,a,back));
+ let h=`<div class="blk frm">`;
+ if(!x)h+=`<label for="xn">Название</label><input type="text" id="xn">`;
+ else if(!W)h+=`<label>Со склада</label><div class="pick" style="color:var(--fg)">${esc([x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div>`;
+ if(!W&&!x)h+=`<label for="xb">Производитель</label><input type="text" id="xb"><label for="xa">Артикул</label><input type="text" id="xa">`;
+ h+=W?`<label for="xh">Нормо-часы</label><input type="text" id="xh" inputmode="decimal" value="${x&&x.h?nh(x.h):""}" placeholder="например 1,5">`
+     :`<label for="xq">Количество</label><input type="text" id="xq" inputmode="decimal" value="1">`;
+ h+=`</div><button class="btn" id="xs">Добавить</button><div class="err" id="xe"></div>`;
+ if(!x)h+=`<p class="empty">${W?"Цена: нормо-часы × стоимость нормо-часа из программы.":"Цену поставите на ПК."}</p>`;
+ M.innerHTML=h;
+ const num=v=>parseFloat(String(v||"").replace(",","."));
+ xs.onclick=async()=>{
+  const name=x?x.name:xn.value.trim();if(!name){xe.textContent="Впишите название";return}
+  const o={type:"item",kind,appt_id:a.id,ref_id:x?x.id:"",name};
+  if(W){const hv=num(xh.value);if(xh.value.trim()&&!(hv>0)){xe.textContent="Нормо-часы - числом, например 1,5";return}o.hours=xh.value.trim()?String(hv):""}
+  else{const q=num(xq.value);if(!(q>0)){xe.textContent="Количество - числом";return}o.qty=String(q);
+   if(x){o.brand=x.brand||"";o.article=x.art||"";if(q>(x.qty||0)&&!confirm("На складе "+nh(x.qty||0)+". Всё равно добавить?"))return}else{o.brand=xb.value.trim();o.article=xa.value.trim()}}
+  xs.disabled=true;try{await send(o);appt(a.id,back)}catch(e){xe.textContent=e.message;xs.disabled=false}};
 }
 let findTimer;
 function find(){
