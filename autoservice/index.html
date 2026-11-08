@@ -103,7 +103,7 @@ async function yd(path,opt={}){
  if(r.status===401){LSs("rr_ydToken","");throw new Error("login")}
  return r;
 }
-async function ydGetJson(p){const r=await yd("/resources/download?path="+encodeURIComponent(p));if(r.status===404)return null;if(!r.ok)throw new Error("Диск "+r.status);const{href}=await r.json();const f=await fetch(href);if(!f.ok)throw new Error("Диск: файл "+f.status);return f.json()}
+async function ydGetJson(p){const r=await yd("/resources/download?path="+encodeURIComponent(p));if(r.status===404)return null;if(!r.ok)throw new Error("Диск "+r.status);const{href}=await r.json();let f;try{f=await fetch(href)}catch(e){throw new Error("Диск: скачивание файла ("+e.message+")")}if(!f.ok)throw new Error("Диск: файл "+f.status);const t=await f.text();try{return JSON.parse(t.replace(/^\uFEFF/,""))}catch(e){throw new Error("файл "+p.split("/").pop()+" не читается ("+t.length+" байт): "+e.message)}}
 async function ydPut(p,text){
  let r=await yd("/resources/upload?overwrite=true&path="+encodeURIComponent(p));
  if(r.status===409){await yd("/resources?path="+encodeURIComponent(DIR),{method:"PUT"});await yd("/resources?path="+encodeURIComponent(DIR+"/inbox"),{method:"PUT"});r=await yd("/resources/upload?overwrite=true&path="+encodeURIComponent(p))}
@@ -135,7 +135,7 @@ async function load(force){
    const ids=new Set(D.appliedInbox||[]);pend=pend.filter(p=>!ids.has(p.file));LSs("as_pending",pend)}
   showSync();return true}
  catch(e){if(e.message==="login"){loginScreen("Вход в Яндекс истёк - войдите заново.");return false}
-  setSync("Нет связи с Диском - показаны данные на "+(D?fmtTime(D.exported):"—"));return !!D}
+  setSync((D?"Нет связи с Диском - показаны данные на "+fmtTime(D.exported):"Ошибка")+". Причина: "+e.message);return !!D}
 }
 function fmtTime(s){if(!s)return"—";const d=new Date(s.replace(" ","T"));return isNaN(d)?s:d.toLocaleString("ru",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
 function setSync(t){document.getElementById("sync").hidden=false;document.getElementById("syncTxt").textContent=t}
