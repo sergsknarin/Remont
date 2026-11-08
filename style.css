@@ -175,3 +175,15 @@ details summary{cursor:pointer;color:var(--acc);font-size:14px;padding:6px 0}
 .engsel{display:flex;gap:8px;align-items:center;margin:8px 0}.engsel label{white-space:nowrap}.engsel select{flex:1;font:inherit;padding:6px;border-radius:8px}
 .vids{display:flex;flex-direction:column;gap:6px}.vid{text-align:left;font:inherit;padding:10px;border-radius:8px;border:1px solid #8884;background:none;color:inherit}
 .vid span{float:right;opacity:.6;font-size:.85em}.vbox video{width:100%;max-height:70vh;border-radius:8px;background:#000}
+
+/* 0.19.0: вкладки внизу (как у автосервиса), выбор двигателя кнопками, меню «＋» */
+body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-top:1px solid var(--line);padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
+.tabs button{background:none;border:0;color:var(--muted);font:11px system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:2px 0}
+.tabs button b{font-size:21px;font-weight:400;line-height:1.1}
+.tabs button.cur{color:var(--acc)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chips button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:16px;padding:7px 13px;font-size:14px}
+.chips button.cur{background:var(--acc);border-color:var(--acc);color:#fff}
+.addl{display:flex;flex-direction:column;gap:8px;margin:8px 0}.addl button{text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font-size:16px}
+.addl small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+#toast{bottom:calc(76px + env(safe-area-inset-bottom)) !important}

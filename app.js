@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.18.0';
+const APP_VERSION = '0.19.0';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -326,11 +326,11 @@ function renderGroup(v, works, groups) {
   const c = ctx(), adds = [['work', 'Работа']];
   if (!groups.length) html = docsRow(c, h) + html;
   if (!groups.length && c.model && (c.model.engines || []).length) // варианты двигателя (0.18.0)
-    html = `<div class="engsel"><label for="engSel">⚙ Двигатель</label><select id="engSel"><option value="">Все двигатели (общие работы)</option>${c.model.engines.map(e => `<option value="${esc(e.id)}"${e.id === c.engine ? ' selected' : ''}>${esc(e.name)}</option>`).join('')}</select></div>` + html;
+    html = `<h2>⚙ Двигатель</h2><div class="chips"><button data-eng=""${!c.engine ? ' class="cur"' : ''}>Все</button>${c.model.engines.map(e => `<button data-eng="${esc(e.id)}"${e.id === c.engine ? ' class="cur"' : ''}>${esc(e.name)}</button>`).join('')}</div>` + html;
   if (!groups.length && !c.brand.models.length) adds.push(['model', 'Модель']);
   v.innerHTML = (html || '<div class="empty">Пусто</div>') + addBtns(adds);
   bindRows(v, h);
-  const es = v.querySelector('#engSel'); if (es) es.onchange = () => { LS.set('eng_' + c.model.id, es.value || null); render(); };
+  v.querySelectorAll('[data-eng]').forEach(x => x.onclick = () => { LS.set('eng_' + c.model.id, x.dataset.eng || null); render(); });
   bindAdds(v, { work: () => addWork(c, prefix), model: () => addModel(c.brand) });
 }
 
@@ -522,9 +522,7 @@ function pathInfo(p) {
 function quickHtml(h) {
   h.qcodes = () => go({ type: 'codes' });
   h.qimp = importInstruction; h.qcase = quickCase; h.qwork = quickWork; // case.js
-  let html = backupHtml(h) + rowsHtml([{ k: 'qwork', t: '⚡ Быстрая работа', s: 'название с подсказками, пункты, нормо-часы, фото' },
-    { k: 'qcase', t: '⚡ Быстрый случай', s: 'симптом, причина, артикул, фото — за минуту' },{ k: 'qcodes', t: '⚠ Ошибки сканера', s: 'записано кодов: ' + codesDB().length + ' · ввести код и увидеть решение' },
-    { k: 'qimp', t: '📄 Загрузить инструкцию', s: 'PDF, фото листов или файл работы — разложится само' }]);
+  let html = backupHtml(h);   // 0.19.0: быстрые действия - во вкладке «＋ Добавить»
   const last = LS.get('last', null), li = pathInfo(last);
   if (li) { h.qlast = () => goPath(last); html += '<h2>Продолжить</h2><div class="cont">' + rowsHtml([{ k: 'qlast', t: '▶ ' + esc(li.t), s: esc(li.s) }]) + '</div>'; }
   const rec = LS.get('recent', []).filter(p => pkey(p) !== pkey(last)).map(p => [p, pathInfo(p)]).filter(x => x[1]).slice(0, 5);
