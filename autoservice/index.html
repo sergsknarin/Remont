@@ -57,6 +57,11 @@ input[type=search]{width:100%;font:17px inherit;font-family:inherit;padding:11px
 .fld:first-child{border-top:0}
 .fld div:first-child{font-size:12px;color:var(--mut)}
 .fld div+div{font-size:16px;word-break:break-word}
+.ck{font-size:24px;margin-right:10px;color:var(--tint);line-height:1}
+.sbar{position:sticky;bottom:0;padding:6px 0 4px;background:linear-gradient(transparent,var(--ph) 30%)}
+.rv{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--sep)}.rv .m{flex:1;min-width:0}.rv .m div:last-child{font-size:13px;color:var(--mut)}
+.frm .rv input{width:64px;flex:none;padding:6px;border:1px solid var(--sep);border-radius:8px;text-align:center;font-size:16px}.rv .u{font-size:13px;color:var(--mut)}
+.rv .x{border:0;background:none;color:var(--mut);font-size:18px;padding:4px 6px;cursor:pointer}
 .det{font-size:13px;color:var(--mut);margin-top:3px}
 .empty{color:var(--mut);text-align:center;padding:28px 10px;font-size:15px;line-height:1.45}
 .err{color:var(--bad);font-size:14px;margin-top:10px;min-height:18px}
@@ -150,7 +155,7 @@ document.getElementById("syncBtn").onclick=async()=>{await load(true);if(tab==="
 const carById=id=>D.cars.find(c=>String(c.id)===String(id));
 const cliById=id=>D.clients.find(c=>String(c.id)===String(id));
 const carTitle=c=>c?[(c.brand+" "+c.model).trim(),c.plate].filter(Boolean).join(" · "):"";
-function pendingAppts(d){return pend.filter(p=>p.type==="appt"&&p.date===d).map(p=>({time:p.time,status:"Ждёт ПК",car:p.title||"",client:"",reason:p.reason,post:(D.posts.find(x=>String(x.id)===String(p.post_id))||{}).name||"",phone:""}))}
+function pendingAppts(d){return pend.filter(p=>p.type==="appt"&&p.date===d).map(p=>({tmp:p.file,time:p.time,status:"Ждёт ПК",car:p.title||"",client:"",reason:p.reason,post:(D.posts.find(x=>String(x.id)===String(p.post_id))||{}).name||"",phone:""}))}
 
 // ---------- экраны ----------
 function go(t){tab=t;for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t===t);M.scrollTop=0;({cal,cli,car:cars,find,add:()=>add()})[t]()}
@@ -165,7 +170,7 @@ function cal(){
   .concat(pendingAppts(iso(day))).sort((x,y)=>x.time.localeCompare(y.time));
  h+=`</div><div class="bh">${items.length?"Записей: "+items.length:""}</div>`;
  if(!items.length)h+=`<p class="empty">На этот день записей нет</p>`;
- else{h+=`<div class="blk">`;for(const a of items)h+=`<div class="row tap" data-id="${a.id||""}"><span class="time">${esc(a.time)}</span><div class="m"><div>${esc(a.car||"Без авто")}</div><div>${esc([a.client,a.reason,a.post].filter(Boolean).join(" · "))}</div></div>${pill(a.status)}${tel(a.phone)}</div>`;h+=`</div>`}
+ else{h+=`<div class="blk">`;for(const a of items)h+=`<div class="row tap" data-id="${a.id||(a.tmp?"tmp:"+a.tmp:"")}"><span class="time">${esc(a.time)}</span><div class="m"><div>${esc(a.car||"Без авто")}</div><div>${esc([a.client,a.reason,a.post].filter(Boolean).join(" · "))}</div></div>${pill(a.status)}${tel(a.phone)}</div>`;h+=`</div>`}
  M.innerHTML=h;
  M.querySelectorAll(".days button").forEach(b=>b.onclick=()=>{day=new Date(b.dataset.d+"T12:00");cal()});
  pw1.onclick=()=>{day.setDate(day.getDate()-7);cal()};nw1.onclick=()=>{day.setDate(day.getDate()+7);cal()};td.onclick=()=>{day=new Date();cal()};
@@ -236,21 +241,26 @@ function car(id,back){
 }
 // ---------- запись: работы и запчасти (0.33.41) ----------
 const nh=x=>String(Math.round(x*100)/100).replace(".",",");
+const akey=a=>a.tmp?"tmp:"+a.tmp:String(a.id);
+function findAppt(id){id=String(id);
+ if(id.startsWith("tmp:")){const p=pend.find(x=>x.type==="appt"&&x.file===id.slice(4));
+  return p&&{id:null,tmp:p.file,start:p.date+" "+p.time,car:p.car_id||null,client:p.client_id||null,post:p.post_id,reason:p.reason,status:"Ждёт ПК",works:"",parts:"",title:p.title||""}}
+ return D.appts.find(x=>String(x.id)===id)}
 function appt(id,back){
- const a=D.appts.find(x=>String(x.id)===String(id));if(!a){back&&back();return}
+ const a=findAppt(id);if(!a){back&&back();return}
  const c=carById(a.car),cl=cliById(a.client)||{},post=(D.posts.find(p=>String(p.id)===String(a.post))||{}).name||"";
- head(carTitle(c)||"Запись",dmy(a.start)+" "+a.start.slice(11,16)+(post?" · "+post:""),back);
- const pi=pend.filter(p=>p.type==="item"&&String(p.appt_id)===String(a.id));
+ head(carTitle(c)||a.title||"Запись",dmy(a.start)+" "+a.start.slice(11,16)+(post?" · "+post:""),back);
+ const pi=pend.filter(p=>p.type==="item"&&(p.akey||String(p.appt_id))===akey(a));
  const lst=(txt,kind)=>{const rows=String(txt||"").split(", ").filter(Boolean).map(t=>`<div class="row"><div class="m"><div>${esc(t)}</div></div></div>`)
    .concat(pi.filter(p=>p.kind===kind).map(p=>`<div class="row"><div class="m"><div>${esc(p.name+(p.brand?" ("+p.brand+")":"")+(kind==="part"&&+p.qty!==1?" ×"+p.qty:"")+(kind==="work"&&p.hours?" · "+nh(+p.hours)+" н/ч":""))}</div></div><span class="pill g">Ждёт ПК</span></div>`));
    return rows.length?`<div class="blk">${rows.join("")}</div>`:`<p class="empty">Пока нет</p>`};
- let h=`<div class="blk"><div class="fld"><div>Клиент</div><div>${esc(cl.name||"—")} ${tel(cl.phone)}</div></div><div class="fld"><div>Причина</div><div>${esc(a.reason||"—")}</div></div><div class="fld"><div>Статус</div><div>${pill(a.status)}</div></div></div>`;
+ let h=`<div class="blk"><div class="fld"><div>Клиент</div><div>${esc(cl.name||"—")} ${tel(cl.phone)}</div></div><div class="fld"><div>Причина</div><div>${esc(a.reason||"—")}</div></div><div class="fld"><div>Статус</div><div>${pill(a.status)}</div></div></div>${a.tmp?`<p class="empty">Запись ещё не дошла до ПК - добавленное внесётся вместе с ней.</p>`:""}`;
  h+=`<div class="bh">Работы</div>${lst(a.works,"work")}<button class="btn sec" id="aW">＋ Работа</button>`;
  h+=`<div class="bh">Запчасти</div>${lst(a.parts,"part")}<button class="btn sec" id="aP">＋ Запчасть</button>`;
  if(c)h+=`<button class="btn sec" id="aC">Карточка авто</button>`;
  M.innerHTML=h;M.scrollTop=0;
  aW.onclick=()=>{itemQ="";itemPick("work",a,back)};aP.onclick=()=>{itemQ="";itemPick("part",a,back)};
- if(c)aC.onclick=()=>openCar(c.id,()=>appt(a.id,back));
+ if(c)aC.onclick=()=>openCar(c.id,()=>appt(akey(a),back));
 }
 let itemQ="";
 // позиции прошлых визитов этой машины (свежие сверху, без повторов), кроме текущей записи
@@ -260,28 +270,62 @@ function carHistory(kind,a){
   .forEach(v=>((kind==="work"?v.wl:v.pl)||[]).forEach(x=>{const k=x.r!=null?"r"+x.r:"n"+norm(x.n+(x.b||""));if(seen.has(k))return;seen.add(k);out.push({...x,when:dmy(v.start)})}));
  return out.slice(0,30);
 }
-function itemPick(kind,a,back){
- const W=kind==="work",cat=(W?D.cworks:D.cparts)||[];
- head(W?"Добавить работу":"Добавить запчасть",carTitle(carById(a.car)),()=>appt(a.id,back));
- M.innerHTML=`<input type="search" id="iq" placeholder="${W?"Название работы":"Название, артикул, производитель"}" value="${esc(itemQ)}"><button class="btn sec" id="iOwn">＋ ${W?"Своя работа":"Своя запчасть"}</button><div id="il"></div>`;
+let chosen=[];   // отмеченное галочками: {key,ref,hist,n,b,a,h,q}
+function itemPick(kind,a,back,keep){
+ const W=kind==="work",cat=(W?D.cworks:D.cparts)||[];if(!keep)chosen=[];
+ head(W?"Добавить работы":"Добавить запчасти",carTitle(carById(a.car))||a.title||"",()=>appt(akey(a),back));
+ M.innerHTML=`<input type="search" id="iq" placeholder="${W?"Название работы":"Название, артикул, производитель"}" value="${esc(itemQ)}"><button class="btn sec" id="iOwn">＋ ${W?"Своя работа":"Своя запчасть"}</button><div id="il"></div><div class="sbar"><button class="btn" id="iGo" disabled></button></div>`;
  iOwn.onclick=()=>itemForm(kind,a,back,null);
+ const cnt=()=>{iGo.disabled=!chosen.length;iGo.textContent=chosen.length?"Дальше - отмечено: "+chosen.length:"Отметьте галочками"};
+ iGo.onclick=()=>itemReview(kind,a,back);
+ const tick=k=>chosen.some(c=>c.key===k)?"☑":"☐";
  const list=()=>{const box=document.getElementById("il");if(!box)return;
-  if(!cat.length&&!carHistory(kind,a).length){box.innerHTML=`<p class="empty">${D.cworks?"Справочник пуст":"Справочник с ПК не пришёл - обновите программу на ПК до 0.33.41"}. Можно добавить свою позицию.</p>`;return}
+  const hist0=carHistory(kind,a);
+  if(!cat.length&&!hist0.length){box.innerHTML=`<p class="empty">${D.cworks?"Справочник пуст":"Справочник с ПК не пришёл - обновите программу на ПК до 0.33.43"}. Можно добавить свою позицию.</p>`;return}
   const n=norm(itemQ);const f=cat.filter(x=>!n||norm(x.name+" "+(x.art||"")+" "+(x.brand||"")).includes(n)).slice(0,60);
-  const hist=carHistory(kind,a).filter(x=>!n||norm(x.n+" "+(x.a||"")+" "+(x.b||"")).includes(n));
-  let h="";
-  if(hist.length){h+=`<div class="bh">Было у этой машины</div><div class="blk">`;hist.forEach((x,i)=>h+=`<div class="row tap" data-h="${i}"><div class="m"><div>${esc(x.n)}</div><div>${esc([x.b,x.a,W?"":"×"+nh(x.q||1),x.when].filter(Boolean).join(" · "))}</div></div></div>`);h+=`</div><div class="bh">${W?"Справочник работ":"Склад"}</div>`}
+  const hist=hist0.filter(x=>!n||norm(x.n+" "+(x.a||"")+" "+(x.b||"")).includes(n));
+  let h="";const it={};
+  if(hist.length){h+=`<div class="bh">Было у этой машины</div><div class="blk">`;
+   hist.forEach(x=>{const c=x.r!=null&&cat.find(y=>String(y.id)===String(x.r)),k="h"+x.i;
+    it[k]={key:k,ref:c||null,hist:x.i,n:x.n,b:x.b||"",a:x.a||"",h:c&&c.h||"",q:x.q||1};
+    h+=`<div class="row tap" data-k="${k}"><span class="ck">${tick(k)}</span><div class="m"><div>${esc(x.n)}</div><div>${esc([x.b,x.a,W?"":"×"+nh(x.q||1),x.when].filter(Boolean).join(" · "))}</div></div></div>`});
+   h+=`</div><div class="bh">${W?"Справочник работ":"Склад"}</div>`}
   if(!f.length&&!hist.length){box.innerHTML=`<p class="empty">Ничего не нашлось - добавьте как свою</p>`;return}
-  h+=`<div class="blk">`;for(const x of f)h+=`<div class="row tap" data-id="${x.id}"><div class="m"><div>${esc(x.name)}</div><div>${esc(W?(x.h?nh(x.h)+" н/ч":""):[x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div></div></div>`;
+  h+=`<div class="blk">`;
+  for(const x of f){const k="c"+x.id;it[k]={key:k,ref:x,hist:null,n:x.name,b:x.brand||"",a:x.art||"",h:x.h||"",q:1};
+   h+=`<div class="row tap" data-k="${k}"><span class="ck">${tick(k)}</span><div class="m"><div>${esc(x.name)}</div><div>${esc(W?(x.h?nh(x.h)+" н/ч":""):[x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div></div></div>`}
   box.innerHTML=h+`</div>`;
-  box.querySelectorAll(".row.tap[data-id]").forEach(r=>r.onclick=()=>itemForm(kind,a,back,cat.find(x=>String(x.id)===r.dataset.id)));
-  box.querySelectorAll(".row.tap[data-h]").forEach(r=>r.onclick=()=>{const x=hist[+r.dataset.h],c=x.r!=null&&cat.find(y=>String(y.id)===String(x.r));
-   if(c)itemForm(kind,a,back,c,{q:x.q,i:x.i});else itemForm(kind,a,back,null,{n:x.n,b:x.b,a:x.a,q:x.q,i:x.i})})};
- iq.oninput=()=>{itemQ=iq.value;list()};list();
+  box.querySelectorAll(".row.tap").forEach(r=>r.onclick=()=>{const k=r.dataset.k,i=chosen.findIndex(c=>c.key===k);
+   if(i>=0)chosen.splice(i,1);else chosen.push(it[k]);r.querySelector(".ck").textContent=tick(k);cnt()})};
+ iq.oninput=()=>{itemQ=iq.value;list()};list();cnt();
 }
+// проверка отмеченного: нормо-часы / количество, убрать лишнее, отправить всё
+function itemReview(kind,a,back){
+ const W=kind==="work";
+ head(W?"Отмеченные работы":"Отмеченные запчасти",carTitle(carById(a.car))||a.title||"",()=>itemPick(kind,a,back,true));
+ if(!chosen.length){itemPick(kind,a,back,true);return}
+ let h=`<div class="blk frm">`;
+ chosen.forEach((c,i)=>{const st=!W&&c.ref?" · остаток "+nh(c.ref.qty||0):"";
+  h+=`<div class="rv"><div class="m"><div>${esc(c.n)}</div><div>${esc([c.b,c.a].filter(Boolean).join(" · ")+st)}${c.hist?" · цена как в прошлый раз":""}</div></div>
+   <input type="text" inputmode="decimal" data-i="${i}" value="${W?(c.h?nh(c.h):""):nh(c.q||1)}" placeholder="${W?"н/ч":"кол-во"}"><span class="u">${W?"н/ч":"шт"}</span><button class="x" data-x="${i}" aria-label="Убрать">✕</button></div>`});
+ h+=`</div><button class="btn" id="rAll">Добавить все (${chosen.length})</button><div class="err" id="re2"></div>`;
+ M.innerHTML=h;
+ M.querySelectorAll("button.x").forEach(b=>b.onclick=()=>{chosen.splice(+b.dataset.x,1);itemReview(kind,a,back)});
+ M.querySelectorAll(".rv input").forEach(inp=>inp.oninput=()=>{const c=chosen[+inp.dataset.i];if(W)c.h=inp.value;else c.q=inp.value});
+ const num=v=>parseFloat(String(v||"").replace(",","."));
+ rAll.onclick=async()=>{
+  for(const c of chosen){const v=W?c.h:c.q;if(String(v).trim()&&!(num(v)>0)||(!W&&!(num(v)>0))){re2.textContent=(W?"Нормо-часы":"Количество")+" - числом: "+c.n;return}}
+  rAll.disabled=true;let done=0;
+  try{for(const c of chosen.slice()){const o=itemMsg(kind,a,c.ref?c.ref.id:"",c.n);if(c.hist)o.hist_id=c.hist;
+    if(W)o.hours=String(c.h).trim()?String(num(c.h)):"";else{o.qty=String(num(c.q));o.brand=c.b;o.article=c.a}
+    await send(o);done++;chosen.shift()}
+   appt(akey(a),back)}
+  catch(e){re2.textContent="Отправлено "+done+", остальное не ушло: "+e.message;rAll.disabled=false}};
+}
+function itemMsg(kind,a,ref,name){const o={type:"item",kind,ref_id:ref,name,akey:akey(a)};if(a.tmp)o.appt_tmp=a.tmp;else o.appt_id=a.id;return o}
 function itemForm(kind,a,back,x,pre){pre=pre||{};
  const W=kind==="work";
- head(x?x.name:(W?"Своя работа":"Своя запчасть"),carTitle(carById(a.car)),()=>itemPick(kind,a,back));
+ head(x?x.name:(W?"Своя работа":"Своя запчасть"),carTitle(carById(a.car))||a.title||"",()=>itemPick(kind,a,back,true));
  let h=`<div class="blk frm">`;
  if(!x)h+=`<label for="xn">Название</label><input type="text" id="xn" value="${esc(pre.n||"")}">`;
  else if(!W)h+=`<label>Со склада</label><div class="pick" style="color:var(--fg)">${esc([x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div>`;
@@ -294,11 +338,11 @@ function itemForm(kind,a,back,x,pre){pre=pre||{};
  const num=v=>parseFloat(String(v||"").replace(",","."));
  xs.onclick=async()=>{
   const name=x?x.name:xn.value.trim();if(!name){xe.textContent="Впишите название";return}
-  const o={type:"item",kind,appt_id:a.id,ref_id:x?x.id:"",name};if(pre.i)o.hist_id=pre.i;
+  const o=itemMsg(kind,a,x?x.id:"",name);if(pre.i)o.hist_id=pre.i;
   if(W){const hv=num(xh.value);if(xh.value.trim()&&!(hv>0)){xe.textContent="Нормо-часы - числом, например 1,5";return}o.hours=xh.value.trim()?String(hv):""}
   else{const q=num(xq.value);if(!(q>0)){xe.textContent="Количество - числом";return}o.qty=String(q);
    if(x){o.brand=x.brand||"";o.article=x.art||"";if(q>(x.qty||0)&&!confirm("На складе "+nh(x.qty||0)+". Всё равно добавить?"))return}else{o.brand=xb.value.trim();o.article=xa.value.trim()}}
-  xs.disabled=true;try{await send(o);appt(a.id,back)}catch(e){xe.textContent=e.message;xs.disabled=false}};
+  xs.disabled=true;try{await send(o);appt(akey(a),back)}catch(e){xe.textContent=e.message;xs.disabled=false}};
 }
 let findTimer;
 function find(){
