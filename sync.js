@@ -1,7 +1,9 @@
 /* Справочник ремонта — синхронизация с Яндекс.Диском (0.17.0).
    База (db.json) и фото лежат в папке приложения на Диске владельца: «Приложения/<имя приложения>».
    Вход — один раз на каждом устройстве (OAuth Яндекса). Без интернета всё работает, изменения уйдут, когда сеть появится.
-   Данные Jetour (свои документы техдока, карточки ТО Jetour) на Диск НЕ отправляются — правило владельца. */
+   На Диск не отправляются только документы техдока (официальные источники, docsUser).
+   Данные от людей по Jetour (карточки ТО, работы, случаи, фото) отправляются — решение владельца 08.11.2026;
+   для официальных материалов Jetour будет отдельная программа. */
 'use strict';
 
 const YD = 'https://cloud-api.yandex.net/v1/disk';
@@ -24,10 +26,9 @@ async function ydPut(p, body) { const r = await ydApi('/resources/upload?overwri
 async function ydList(p) { const r = await ydApi('/resources?limit=100000&fields=_embedded.items.name&path=' + encodeURIComponent(p)); if (r.status === 404) return null; if (!r.ok) throw new Error('Диск: список ' + r.status); return ((await r.json())._embedded || { items: [] }).items.map(x => x.name); }
 async function ydMkdir(p) { await ydApi('/resources?path=' + encodeURIComponent(p), { method: 'PUT' }); }
 
-// Что отправляем: всё, кроме данных Jetour
+// Что отправляем: всё, кроме документов техдока (официальные источники)
 function ydOut(db) {
   const o = structuredClone(db); delete o.docsUser;
-  if (o.toUser) o.toUser = o.toUser.filter(x => !/jetour/i.test(x.brand || ''));
   return o;
 }
 // Слияние двух баз: списки объектов с id объединяются, при совпадении id побеждает эта (local) копия
@@ -50,6 +51,7 @@ const photoIds = db => new Set(db.templates.concat(db.items, db.codes || []).fla
 async function ydSync(manual) {
   if (!ydTok()) return; if (ydBusy) { ydAgain = true; return; } if (!navigator.onLine) { ydState('☁ нет сети', 'warn'); return; }
   ydBusy = true; ydState('☁ …'); const started = Date.now();
+  if (!LS.get('ydJetour1', false)) { LS.set('ydDirty', Date.now()); LS.set('ydJetour1', true); }   // 0.17.3: один раз - отправить карточки ТО Jetour, что раньше не уходили
   try {
     const meta = await ydMeta('app:/db.json');
     const remoteChanged = meta && meta.modified !== LS.get('ydRemoteMod', ''), localChanged = !!LS.get('ydDirty', false) || !meta;
@@ -58,7 +60,7 @@ async function ydSync(manual) {
       const remote = await (await ydGet('app:/db.json')).json();
       if (!validDB(remote)) throw new Error('на Диске не база справочника');
       if (localChanged) { DB = ydMerge(DB, remote); push = true; }
-      else { const keep = { docsUser: DB.docsUser, toUser: (DB.toUser || []).filter(x => /jetour/i.test(x.brand || '')) }; DB = remote; DB.docsUser = keep.docsUser; DB.toUser = (DB.toUser || []).concat(keep.toUser); }
+      else { const docs = DB.docsUser; DB = remote; DB.docsUser = docs; }
       await Store.set('db', DB); render();
     } else if (localChanged) push = true;
     // фото: отправить недостающие, скачать отсутствующие
@@ -98,8 +100,8 @@ async function ydSync(manual) {
 // Экран настройки (⋮ → Яндекс.Диск)
 async function ydScreen() {
   const on = !!ydTok(), last = LS.get('ydLast', 0);
-  const k = await ask(on ? `Яндекс.Диск подключён.\nПоследняя синхронизация: ${last ? new Date(last).toLocaleString('ru-RU') : 'ещё не было'}.\nДанные лежат на вашем Диске: «Приложения» → папка программы.\nДанные Jetour туда не отправляются.`
-    : 'Подключить Яндекс.Диск? Записи и фото будут храниться на ВАШЕМ Диске и совпадать на телефоне и ПК.\nДанные Jetour на Диск не отправляются.',
+  const k = await ask(on ? `Яндекс.Диск подключён.\nПоследняя синхронизация: ${last ? new Date(last).toLocaleString('ru-RU') : 'ещё не было'}.\nДанные лежат на вашем Диске: «Приложения» → папка программы.\nДокументы техдока туда не отправляются.`
+    : 'Подключить Яндекс.Диск? Записи и фото будут храниться на ВАШЕМ Диске и совпадать на телефоне и ПК.\nДокументы техдока на Диск не отправляются.',
     on ? [{ k: 'sync', t: 'Синхронизировать сейчас', cls: 'pri' }, { k: 'off', t: 'Отключить на этом устройстве', cls: 'danger' }, { k: null, t: 'Закрыть' }]
        : [{ k: 'on', t: 'Подключить', cls: 'pri' }, { k: 'cid', t: 'ClientID приложения' }, { k: null, t: 'Отмена' }]);
   if (k === 'sync') return ydSync(true);
