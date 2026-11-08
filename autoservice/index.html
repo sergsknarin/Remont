@@ -158,7 +158,7 @@ const carTitle=c=>c?[(c.brand+" "+c.model).trim(),c.plate].filter(Boolean).join(
 function pendingAppts(d){return pend.filter(p=>p.type==="appt"&&p.date===d).map(p=>({tmp:p.file,time:p.time,status:"Ждёт ПК",car:p.title||"",client:"",reason:p.reason,post:(D.posts.find(x=>String(x.id)===String(p.post_id))||{}).name||"",phone:""}))}
 
 // ---------- экраны ----------
-function go(t){tab=t;for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t===t);M.scrollTop=0;({cal,cli,car:cars,find,add:()=>add()})[t]()}
+function go(t){tab=t;for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t===t);M.scrollTop=0;({cal,cli,car:cars,find,add:()=>sel?add():addMenu()})[t]()}
 for(const b of NAV.children)b.onclick=()=>go(b.dataset.t);
 function cal(){
  head("Записи",WDL[day.getDay()]+", "+day.getDate()+" "+MON[day.getMonth()]);
@@ -373,8 +373,27 @@ async function send(o){
  await ydPut(DIR+"/inbox/"+file,JSON.stringify(msg));
  pend.push(msg);LSs("as_pending",pend);showSync();return msg;
 }
+// «＋»: что добавить - запись, работы или запчасти в запись
+function addMenu(){
+ head("Добавить","");
+ M.innerHTML=`<button class="btn" id="mA">＋ Новая запись</button><button class="btn sec" id="mW">＋ Работы в запись</button><button class="btn sec" id="mP">＋ Запчасти в запись</button>`;
+ mA.onclick=add;mW.onclick=()=>pickAppt("work");mP.onclick=()=>pickAppt("part");
+}
+// выбор записи: сегодня и ожидающие ПК сверху, потом ближайшие и недавние
+function pickAppt(kind){
+ head(kind==="work"?"Работы - в какую запись":"Запчасти - в какую запись","",addMenu);
+ const t=iso(new Date()),from=iso(new Date(Date.now()-14*864e5)),to=iso(new Date(Date.now()+14*864e5));
+ const list=pend.filter(p=>p.type==="appt").map(p=>findAppt("tmp:"+p.file)).filter(Boolean)
+  .concat(D.appts.filter(a=>a.start.slice(0,10)>=from&&a.start.slice(0,10)<=to&&!/отмен/i.test(a.status)))
+  .sort((x,y)=>((y.start.slice(0,10)===t||y.tmp)?1:0)-((x.start.slice(0,10)===t||x.tmp)?1:0)||Math.abs(new Date(x.start.replace(" ","T"))-Date.now())-Math.abs(new Date(y.start.replace(" ","T"))-Date.now()));
+ if(!list.length){M.innerHTML=`<p class="empty">Нет записей за 2 недели до и после сегодня. Найдите машину в «Авто» и нажмите на визит.</p>`;return}
+ let h=`<div class="blk">`;for(const a of list){const c=carById(a.car),cl=cliById(a.client)||{};
+  h+=`<div class="row tap" data-k="${esc(akey(a))}"><span class="time">${a.start.slice(0,10)===t?a.start.slice(11,16):dmy(a.start).slice(0,5)}</span><div class="m"><div>${esc(carTitle(c)||a.title||"Без авто")}</div><div>${esc([cl.name,a.reason].filter(Boolean).join(" · "))}</div></div>${pill(a.status)}</div>`}
+ M.innerHTML=h+`</div>`;
+ M.querySelectorAll(".row.tap").forEach(r=>r.onclick=()=>{const a=findAppt(r.dataset.k);if(a){itemQ="";itemPick(kind,a,()=>appt(akey(a),()=>go("cal")))}});
+}
 function add(){
- head("Новая запись","попадёт в программу, когда ПК включён");
+ head("Новая запись","попадёт в программу, когда ПК включён",()=>{sel=null;addMenu()});
  const now=new Date();let hh=now.getHours()+1;if(hh<8||hh>19)hh=9;
  M.innerHTML=`<div class="blk frm">
   <label for="fd">Дата</label><input type="date" id="fd" value="${iso(day)}">
