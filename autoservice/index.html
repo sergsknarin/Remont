@@ -249,40 +249,52 @@ function appt(id,back){
  h+=`<div class="bh">Запчасти</div>${lst(a.parts,"part")}<button class="btn sec" id="aP">＋ Запчасть</button>`;
  if(c)h+=`<button class="btn sec" id="aC">Карточка авто</button>`;
  M.innerHTML=h;M.scrollTop=0;
- aW.onclick=()=>itemPick("work",a,back);aP.onclick=()=>itemPick("part",a,back);
+ aW.onclick=()=>{itemQ="";itemPick("work",a,back)};aP.onclick=()=>{itemQ="";itemPick("part",a,back)};
  if(c)aC.onclick=()=>openCar(c.id,()=>appt(a.id,back));
 }
 let itemQ="";
+// позиции прошлых визитов этой машины (свежие сверху, без повторов), кроме текущей записи
+function carHistory(kind,a){
+ const seen=new Set(),out=[];
+ D.appts.filter(v=>a.car&&String(v.car)===String(a.car)&&String(v.id)!==String(a.id)).sort((x,y)=>y.start.localeCompare(x.start))
+  .forEach(v=>((kind==="work"?v.wl:v.pl)||[]).forEach(x=>{const k=x.r!=null?"r"+x.r:"n"+norm(x.n+(x.b||""));if(seen.has(k))return;seen.add(k);out.push({...x,when:dmy(v.start)})}));
+ return out.slice(0,30);
+}
 function itemPick(kind,a,back){
  const W=kind==="work",cat=(W?D.cworks:D.cparts)||[];
  head(W?"Добавить работу":"Добавить запчасть",carTitle(carById(a.car)),()=>appt(a.id,back));
  M.innerHTML=`<input type="search" id="iq" placeholder="${W?"Название работы":"Название, артикул, производитель"}" value="${esc(itemQ)}"><button class="btn sec" id="iOwn">＋ ${W?"Своя работа":"Своя запчасть"}</button><div id="il"></div>`;
  iOwn.onclick=()=>itemForm(kind,a,back,null);
  const list=()=>{const box=document.getElementById("il");if(!box)return;
-  if(!cat.length){box.innerHTML=`<p class="empty">${D.cworks?"Справочник пуст":"Справочник с ПК не пришёл - обновите программу на ПК до 0.33.41"}. Можно добавить свою позицию.</p>`;return}
+  if(!cat.length&&!carHistory(kind,a).length){box.innerHTML=`<p class="empty">${D.cworks?"Справочник пуст":"Справочник с ПК не пришёл - обновите программу на ПК до 0.33.41"}. Можно добавить свою позицию.</p>`;return}
   const n=norm(itemQ);const f=cat.filter(x=>!n||norm(x.name+" "+(x.art||"")+" "+(x.brand||"")).includes(n)).slice(0,60);
-  if(!f.length){box.innerHTML=`<p class="empty">Ничего не нашлось - добавьте как свою</p>`;return}
-  let h=`<div class="blk">`;for(const x of f)h+=`<div class="row tap" data-id="${x.id}"><div class="m"><div>${esc(x.name)}</div><div>${esc(W?(x.h?nh(x.h)+" н/ч":""):[x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div></div></div>`;
+  const hist=carHistory(kind,a).filter(x=>!n||norm(x.n+" "+(x.a||"")+" "+(x.b||"")).includes(n));
+  let h="";
+  if(hist.length){h+=`<div class="bh">Было у этой машины</div><div class="blk">`;hist.forEach((x,i)=>h+=`<div class="row tap" data-h="${i}"><div class="m"><div>${esc(x.n)}</div><div>${esc([x.b,x.a,W?"":"×"+nh(x.q||1),x.when].filter(Boolean).join(" · "))}</div></div></div>`);h+=`</div><div class="bh">${W?"Справочник работ":"Склад"}</div>`}
+  if(!f.length&&!hist.length){box.innerHTML=`<p class="empty">Ничего не нашлось - добавьте как свою</p>`;return}
+  h+=`<div class="blk">`;for(const x of f)h+=`<div class="row tap" data-id="${x.id}"><div class="m"><div>${esc(x.name)}</div><div>${esc(W?(x.h?nh(x.h)+" н/ч":""):[x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div></div></div>`;
   box.innerHTML=h+`</div>`;
-  box.querySelectorAll(".row.tap").forEach(r=>r.onclick=()=>itemForm(kind,a,back,cat.find(x=>String(x.id)===r.dataset.id)))};
+  box.querySelectorAll(".row.tap[data-id]").forEach(r=>r.onclick=()=>itemForm(kind,a,back,cat.find(x=>String(x.id)===r.dataset.id)));
+  box.querySelectorAll(".row.tap[data-h]").forEach(r=>r.onclick=()=>{const x=hist[+r.dataset.h],c=x.r!=null&&cat.find(y=>String(y.id)===String(x.r));
+   if(c)itemForm(kind,a,back,c,{q:x.q,i:x.i});else itemForm(kind,a,back,null,{n:x.n,b:x.b,a:x.a,q:x.q,i:x.i})})};
  iq.oninput=()=>{itemQ=iq.value;list()};list();
 }
-function itemForm(kind,a,back,x){
+function itemForm(kind,a,back,x,pre){pre=pre||{};
  const W=kind==="work";
  head(x?x.name:(W?"Своя работа":"Своя запчасть"),carTitle(carById(a.car)),()=>itemPick(kind,a,back));
  let h=`<div class="blk frm">`;
- if(!x)h+=`<label for="xn">Название</label><input type="text" id="xn">`;
+ if(!x)h+=`<label for="xn">Название</label><input type="text" id="xn" value="${esc(pre.n||"")}">`;
  else if(!W)h+=`<label>Со склада</label><div class="pick" style="color:var(--fg)">${esc([x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div>`;
- if(!W&&!x)h+=`<label for="xb">Производитель</label><input type="text" id="xb"><label for="xa">Артикул</label><input type="text" id="xa">`;
+ if(!W&&!x)h+=`<label for="xb">Производитель</label><input type="text" id="xb" value="${esc(pre.b||"")}"><label for="xa">Артикул</label><input type="text" id="xa" value="${esc(pre.a||"")}">`;
  h+=W?`<label for="xh">Нормо-часы</label><input type="text" id="xh" inputmode="decimal" value="${x&&x.h?nh(x.h):""}" placeholder="например 1,5">`
-     :`<label for="xq">Количество</label><input type="text" id="xq" inputmode="decimal" value="1">`;
+     :`<label for="xq">Количество</label><input type="text" id="xq" inputmode="decimal" value="${pre.q?nh(pre.q):1}">`;
  h+=`</div><button class="btn" id="xs">Добавить</button><div class="err" id="xe"></div>`;
- if(!x)h+=`<p class="empty">${W?"Цена: нормо-часы × стоимость нормо-часа из программы.":"Цену поставите на ПК."}</p>`;
+ h+=pre.i?`<p class="empty">Цена - как ставили в прошлый раз${W?" (если изменить нормо-часы - пересчитается)":""}.</p>`:!x?`<p class="empty">${W?"Цена: нормо-часы × стоимость нормо-часа из программы.":"Цену поставите на ПК."}</p>`:"";
  M.innerHTML=h;
  const num=v=>parseFloat(String(v||"").replace(",","."));
  xs.onclick=async()=>{
   const name=x?x.name:xn.value.trim();if(!name){xe.textContent="Впишите название";return}
-  const o={type:"item",kind,appt_id:a.id,ref_id:x?x.id:"",name};
+  const o={type:"item",kind,appt_id:a.id,ref_id:x?x.id:"",name};if(pre.i)o.hist_id=pre.i;
   if(W){const hv=num(xh.value);if(xh.value.trim()&&!(hv>0)){xe.textContent="Нормо-часы - числом, например 1,5";return}o.hours=xh.value.trim()?String(hv):""}
   else{const q=num(xq.value);if(!(q>0)){xe.textContent="Количество - числом";return}o.qty=String(q);
    if(x){o.brand=x.brand||"";o.article=x.art||"";if(q>(x.qty||0)&&!confirm("На складе "+nh(x.qty||0)+". Всё равно добавить?"))return}else{o.brand=xb.value.trim();o.article=xa.value.trim()}}
