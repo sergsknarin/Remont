@@ -376,8 +376,48 @@ async function send(o){
 // «＋»: что добавить - запись, работы или запчасти в запись
 function addMenu(){
  head("Добавить","");
- M.innerHTML=`<button class="btn" id="mA">＋ Новая запись</button><button class="btn sec" id="mW">＋ Работы в запись</button><button class="btn sec" id="mP">＋ Запчасти в запись</button>`;
- mA.onclick=add;mW.onclick=()=>pickAppt("work");mP.onclick=()=>pickAppt("part");
+ M.innerHTML=`<button class="btn" id="mA">＋ Новая запись</button><button class="btn sec" id="mW">＋ Работы в запись</button><button class="btn sec" id="mP">＋ Запчасти в запись</button>
+  <div class="bh">Справочник и склад</div><button class="btn sec" id="mCW">＋ Новая работа в справочник</button><button class="btn sec" id="mCP">＋ Приход запчасти на склад</button>`;
+ mA.onclick=add;mW.onclick=()=>pickAppt("work");mP.onclick=()=>pickAppt("part");mCW.onclick=catWork;mCP.onclick=()=>{itemQ="";catPart()};
+}
+const numv=v=>parseFloat(String(v||"").replace(/\s/g,"").replace(",","."));
+function sentOk(t,back){M.innerHTML=`<p class="empty" style="color:var(--ok)">✓ ${esc(t)}<br>Появится в программе, когда компьютер включён.</p><button class="btn sec" id="sAgain">Добавить ещё</button><button class="btn sec" id="sMenu">Готово</button>`;sAgain.onclick=back;sMenu.onclick=addMenu}
+// новая работа в справочник
+function catWork(){
+ head("Новая работа","в справочник работ",addMenu);
+ M.innerHTML=`<div class="blk frm"><label for="cwn">Название</label><input type="text" id="cwn" placeholder="Замена ремня ГРМ"><label for="cwh">Нормо-часы</label><input type="text" id="cwh" inputmode="decimal" placeholder="например 2,5"></div>
+  <p class="empty">Цена: нормо-часы × стоимость нормо-часа из программы (если она задана). Такая работа уже есть - не задвоится.</p><button class="btn" id="cws">Сохранить</button><div class="err" id="cwe"></div>`;
+ cwn.focus();
+ cws.onclick=async()=>{const n=cwn.value.trim();if(!n){cwe.textContent="Впишите название";return}
+  if(cwh.value.trim()&&!(numv(cwh.value)>0)){cwe.textContent="Нормо-часы - числом, например 2,5";return}
+  cws.disabled=true;try{await send({type:"cwork",name:n,hours:cwh.value.trim()?String(numv(cwh.value)):""});sentOk("Работа «"+n+"» отправлена в справочник.",catWork)}catch(e){cwe.textContent=e.message;cws.disabled=false}};
+}
+// приход запчасти: выбрать со склада или новая позиция
+function catPart(){
+ head("Приход на склад","выберите запчасть или добавьте новую",addMenu);
+ const cat=D.cparts||[];
+ M.innerHTML=`<input type="search" id="iq" placeholder="Название, артикул, производитель" value="${esc(itemQ)}"><button class="btn sec" id="cpNew">＋ Новая позиция на склад</button><div id="il"></div>`;
+ cpNew.onclick=()=>catPartForm(null);
+ const list=()=>{const box=document.getElementById("il");if(!box)return;const n=norm(itemQ);
+  const f=cat.filter(x=>!n||norm(x.name+" "+(x.art||"")+" "+(x.brand||"")).includes(n)).slice(0,60);
+  if(!f.length){box.innerHTML=`<p class="empty">${cat.length?"Ничего не нашлось - добавьте новую позицию":"Склад с ПК не пришёл - обновите программу на ПК до 0.33.44"}</p>`;return}
+  let h=`<div class="blk">`;for(const x of f)h+=`<div class="row tap" data-id="${x.id}"><div class="m"><div>${esc(x.name)}</div><div>${esc([x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div></div></div>`;
+  box.innerHTML=h+`</div>`;box.querySelectorAll(".row.tap").forEach(r=>r.onclick=()=>catPartForm(cat.find(x=>String(x.id)===r.dataset.id)))};
+ iq.oninput=()=>{itemQ=iq.value;list()};list();
+}
+function catPartForm(x){
+ head(x?x.name:"Новая позиция","приход на склад",catPart);
+ let h=`<div class="blk frm">`;
+ if(x)h+=`<label>На складе</label><div class="pick" style="color:var(--fg)">${esc([x.brand,x.art,"остаток "+nh(x.qty||0)+(x.unit?" "+x.unit:"")].filter(Boolean).join(" · "))}</div>`;
+ else h+=`<label for="pn1">Название</label><input type="text" id="pn1"><label for="pb1">Производитель</label><input type="text" id="pb1"><label for="pa1">Артикул</label><input type="text" id="pa1"><label for="pu1">Ед. изм.</label><input type="text" id="pu1" value="шт">`;
+ h+=`<label for="pq1">Пришло, количество</label><input type="text" id="pq1" inputmode="decimal"><label for="pp1">Цена (необязательно)</label><input type="text" id="pp1" inputmode="decimal" placeholder="оставьте пустым - цена не изменится"></div>
+  ${x?"":`<p class="empty">Если такой артикул того же производителя уже есть на складе - количество добавится к нему.</p>`}<button class="btn" id="ps1">Сохранить приход</button><div class="err" id="pe1"></div>`;
+ M.innerHTML=h;
+ ps1.onclick=async()=>{const q=numv(pq1.value);if(!(q>0)){pe1.textContent="Количество - числом";return}
+  if(pp1.value.trim()&&!(numv(pp1.value)>=0)){pe1.textContent="Цена - числом";return}
+  const o={type:"cpart",ref_id:x?x.id:"",qty:String(q),price:pp1.value.trim()?String(numv(pp1.value)):""};
+  if(!x){o.name=pn1.value.trim();o.brand=pb1.value.trim();o.article=pa1.value.trim();o.unit=pu1.value.trim();if(!o.name){pe1.textContent="Впишите название";return}}
+  ps1.disabled=true;try{await send(o);sentOk("Приход: "+(x?x.name:o.name)+" +"+nh(q)+".",()=>{itemQ="";catPart()})}catch(e){pe1.textContent=e.message;ps1.disabled=false}};
 }
 // выбор записи: сегодня и ожидающие ПК сверху, потом ближайшие и недавние
 function pickAppt(kind){
