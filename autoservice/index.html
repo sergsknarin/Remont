@@ -144,7 +144,7 @@ async function load(force){
 function fmtTime(s){if(!s)return"—";const d=new Date(s.replace(" ","T"));return isNaN(d)?s:d.toLocaleString("ru",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
 function setSync(t){document.getElementById("sync").hidden=false;document.getElementById("syncTxt").textContent=t}
 function showSync(){setSync("Данные с ПК на "+fmtTime(D&&D.exported)+(pend.length?" · ждут ПК: "+pend.length:""))}
-document.getElementById("syncBtn").onclick=async()=>{await load(true);go(tab)};
+document.getElementById("syncBtn").onclick=async()=>{await load(true);if(tab==="car"&&carOpen&&carById(carId))car(carId,()=>go("car"));else go(tab)};
 
 // ---------- выборки из выгрузки ----------
 const carById=id=>D.cars.find(c=>String(c.id)===String(id));
@@ -153,7 +153,7 @@ const carTitle=c=>c?[(c.brand+" "+c.model).trim(),c.plate].filter(Boolean).join(
 function pendingAppts(d){return pend.filter(p=>p.type==="appt"&&p.date===d).map(p=>({time:p.time,status:"Ждёт ПК",car:p.title||"",client:"",reason:p.reason,post:(D.posts.find(x=>String(x.id)===String(p.post_id))||{}).name||"",phone:""}))}
 
 // ---------- экраны ----------
-function go(t){tab=t;for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t===t);M.scrollTop=0;({cal,cli,car:()=>car(carId),find,add:()=>add()})[t]()}
+function go(t){tab=t;for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t===t);M.scrollTop=0;({cal,cli,car:cars,find,add:()=>add()})[t]()}
 for(const b of NAV.children)b.onclick=()=>go(b.dataset.t);
 function cal(){
  head("Записи",WDL[day.getDay()]+", "+day.getDate()+" "+MON[day.getMonth()]);
@@ -192,7 +192,28 @@ function cliList(){
  box.innerHTML=h+`</div>`;
  box.querySelectorAll(".row.tap").forEach(r=>r.onclick=e=>{if(e.target.closest("a"))return;const s=e.target.closest(".cl");const id=s?s.dataset.car:r.dataset.car;if(id)openCar(id,()=>go("cli"))});
 }
-function openCar(id,back){carId=String(id);LSs("as_car",carId);tab="car";for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t==="car");car(carId,back)}
+let carQ="",carTimer,carOpen=false;
+// «Авто»: список машин - сначала записанные на сегодня, потом по последнему визиту (свежие сверху)
+function cars(){
+ carOpen=false;head("Авто","Машин: "+D.cars.length);
+ M.innerHTML=`<input type="search" id="aq" placeholder="Госномер, марка, VIN, владелец" value="${esc(carQ)}"><div id="al"></div>`;
+ aq.oninput=()=>{carQ=aq.value;clearTimeout(carTimer);carTimer=setTimeout(carList,200)};carList();
+}
+function carList(){
+ const box=document.getElementById("al");if(!box)return;
+ const today=iso(new Date()),last={},todayCar={};
+ for(const a of D.appts){if(!a.car)continue;const d=a.start.slice(0,10);if(d===today&&!/отмен/i.test(a.status))todayCar[a.car]=a.start.slice(11,16);
+  if(d<=today&&(!last[a.car]||a.start>last[a.car]))last[a.car]=a.start}
+ const n=norm(carQ);
+ const list=D.cars.filter(c=>!n||norm(carTitle(c)+c.vin+((cliById(c.client)||{}).name||"")).includes(n))
+  .sort((x,y)=>(todayCar[y.id]?1:0)-(todayCar[x.id]?1:0)||String(last[y.id]||"").localeCompare(String(last[x.id]||""))||(+y.id)-(+x.id)).slice(0,100);
+ if(!list.length){box.innerHTML=`<p class="empty">Ничего не нашлось</p>`;return}
+ let h=`<div class="blk">`;for(const c of list){const cl=cliById(c.client)||{};
+  h+=`<div class="row tap" data-car="${c.id}"><div class="m"><div>${esc(carTitle(c)||"Без названия")}</div><div>${esc([cl.name,todayCar[c.id]?"сегодня "+todayCar[c.id]:last[c.id]?"был "+dmy(last[c.id]):""].filter(Boolean).join(" · "))}</div></div>${tel(cl.phone)}</div>`}
+ box.innerHTML=h+`</div>`;
+ box.querySelectorAll(".row.tap").forEach(r=>r.onclick=e=>{if(e.target.closest("a"))return;openCar(r.dataset.car,()=>go("car"))});
+}
+function openCar(id,back){carOpen=true;carId=String(id);LSs("as_car",carId);tab="car";for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t==="car");car(carId,back)}
 function car(id,back){
  const c=id&&carById(id);
  if(!c){head("Авто","");M.innerHTML=`<p class="empty">Выберите машину в «Записях», «Клиентах» или найдите в «Поиске».</p>`;return}
