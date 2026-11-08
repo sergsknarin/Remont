@@ -1,3 +1,4 @@
+# Публикация SourceCraft Sites: статические файлы из корня ветки main (без сборки).
 site:
   root: .
   ref: main
