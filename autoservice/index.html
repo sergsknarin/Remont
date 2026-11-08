@@ -129,7 +129,8 @@ async function load(force){
    // папки автосервиса на Диске ещё нет - создаём её сами, чтобы она появилась на компьютере в нужном месте
    let made=false;try{for(const p of [DIR,DIR+"/inbox"]){const r=await yd("/resources?path="+encodeURIComponent(p),{method:"PUT"});if(r.status===201)made=true}}catch(e){}
    setSync("Данных с ПК пока нет");
-   if(!D){NAV.hidden=true;head("Автосервис","");M.innerHTML=`<p class="empty">На Диске пока нет данных автосервиса.<br><br>${made?"Папка для программы создана на Диске. ":""}На компьютере в папке Яндекс.Диска откройте<br><b>Приложения → (папка этого приложения) → autoservice</b><br>и выберите её в программе:<br>Настройки → «Телефон» → «Доступ с телефона» → «Через Яндекс.Диск» (патч 0.33.38).</p><button class="btn sec" onclick="location.reload()">Обновить</button>`;return false}}
+   let real="";try{const r=await yd("/resources?path="+encodeURIComponent(DIR)+"&fields=path");if(r.ok)real=(await r.json()).path.replace(/^disk:\//,"").replace(/\//g," \\ ")}catch(e){}
+   if(!D){NAV.hidden=true;head("Автосервис","");M.innerHTML=`<p class="empty">На Диске пока нет данных автосервиса.<br><br>${made?"Папка для программы создана на Диске. ":""}На компьютере в папке Яндекс.Диска откройте<br><b>${real?esc(real):"Приложения → (папка этого приложения) → autoservice"}</b><br>и выберите её в программе:<br>Настройки → «Телефон» → «Доступ с телефона» → «Через Яндекс.Диск» (патч 0.33.38).</p><button class="btn sec" onclick="location.reload()">Обновить</button>`;return false}}
   else{D=j;LSs("as_data",j);LSs("as_loaded",Date.now());
    const ids=new Set(D.appliedInbox||[]);pend=pend.filter(p=>!ids.has(p.file));LSs("as_pending",pend)}
   showSync();return true}
