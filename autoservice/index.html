@@ -57,6 +57,7 @@ input[type=search]{width:100%;font:17px inherit;font-family:inherit;padding:11px
 .fld:first-child{border-top:0}
 .fld div:first-child{font-size:12px;color:var(--mut)}
 .fld div+div{font-size:16px;word-break:break-word}
+.rbtn{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}.rbtn button{font:13px var(--ui,system-ui);padding:5px 10px;border-radius:8px;border:1px solid var(--sep,#ccc);background:var(--card,#fff);color:var(--tint,#0a64d6)}
 .ck{font-size:24px;margin-right:10px;color:var(--tint);line-height:1}
 .sbar{position:sticky;bottom:0;padding:6px 0 4px;background:linear-gradient(transparent,var(--ph) 30%)}
 .rv{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--sep)}.rv .m{flex:1;min-width:0}.rv .m div:last-child{font-size:13px;color:var(--mut)}
@@ -201,7 +202,9 @@ let carQ="",carTimer,carOpen=false;
 // «Авто»: список машин - сначала записанные на сегодня, потом по последнему визиту (свежие сверху)
 function cars(){
  carOpen=false;head("Авто","Машин: "+D.cars.length);
- M.innerHTML=`<input type="search" id="aq" placeholder="Госномер, марка, VIN, владелец" value="${esc(carQ)}"><div id="al"></div>`;
+ const rn=remRows().filter(r=>!r.done).length;
+ M.innerHTML=(rn?`<div class="blk"><div class="row tap" id="remGo"><div class="m"><div>🔔 Напомнить о ТО: ${rn}</div><div>по регламенту и пробегу</div></div><span class="r">›</span></div></div>`:"")+`<input type="search" id="aq" placeholder="Госномер, марка, VIN, владелец" value="${esc(carQ)}"><div id="al"></div>`;
+ const rg=document.getElementById("remGo");if(rg)rg.onclick=remList;
  aq.oninput=()=>{carQ=aq.value;clearTimeout(carTimer);carTimer=setTimeout(carList,200)};carList();
 }
 function carList(){
@@ -226,7 +229,7 @@ function car(id,back){
  const km=(vis.find(a=>a.km>0)||{}).km||0;const spent=vis.reduce((s,a)=>s+(+a.sum||0),0);
  head(c.plate||(c.brand+" "+c.model),[c.plate?(c.brand+" "+c.model).trim():"",c.year,c.engine].filter(Boolean).join(" · "),back);
  let h=`<div class="blk"><div class="fld"><div>VIN</div><div>${esc(c.vin||"—")}</div></div><div class="fld"><div>Владелец</div><div>${esc(cl.name||"—")} ${tel(cl.phone)}</div></div><div class="fld"><div>Пробег</div><div>${km?km.toLocaleString("ru")+" км":"нет данных"}</div></div></div>`;
- h+=`<div class="bh">Сводка</div><div class="blk"><div class="fld"><div>Визитов / потрачено</div><div>${vis.length} · ${Math.round(spent).toLocaleString("ru")} ₽</div></div></div>`;
+ h+=`<div class="bh">Сводка</div><div class="blk"><div class="fld"><div>Визитов / потрачено</div><div>${vis.length} · ${Math.round(spent).toLocaleString("ru")} ₽</div></div>${toFld(c.id)}</div>`;
  const recs=vis.filter(a=>a.rec).slice(0,3).map(a=>({when:dmy(a.start),text:a.rec})).concat((D.est||[]).filter(e=>String(e.car)===String(c.id)).map(e=>({when:"смета",text:e.name}))).concat(pend.filter(p=>p.type==="recommend"&&String(p.car_id)===String(c.id)).map(p=>({when:"ждёт ПК",text:p.text})));
  if(recs.length){h+=`<div class="bh">Рекомендации</div><div class="blk">`;for(const r of recs)h+=`<div class="row"><div class="m"><div>${esc(r.text)}</div><div>${esc(r.when)}</div></div></div>`;h+=`</div>`}
  h+=`<div class="bh">История</div>`;
@@ -262,6 +265,25 @@ function appt(id,back){
  M.innerHTML=h;M.scrollTop=0;
  aW.onclick=()=>{itemQ="";itemPick("work",a,back)};aP.onclick=()=>{itemQ="";itemPick("part",a,back)};
  if(c)aC.onclick=()=>openCar(c.id,()=>appt(akey(a),back));
+}
+// ---------- ТО по регламенту (0.33.47; считает программа на ПК) ----------
+function toFld(id){const t=(D.to||{})[id];if(!t)return"";const over=t.d<=iso(new Date());
+ return `<div class="fld"><div>Ближайшее ТО (по регламенту)</div><div${over?' style="color:var(--bad,#d23b3b)"':''}>≈ ${dmy(t.d+" 00:00")}${t.km?" · ~"+t.km.toLocaleString("ru")+" км":""}<br><span style="font-size:13px;color:var(--pmut,#888)">${esc(t.ops)}</span></div></div>`}
+function remRows(){const sent=new Set(pend.filter(p=>p.type==="reminded").map(p=>String(p.car_id)));
+ return (D.rem||[]).map(r=>({...r,done:!!r.rem||sent.has(String(r.car))}))}
+function remList(){
+ head("Напомнить о ТО","по регламенту и прогнозу пробега",()=>go("car"));
+ const l=remRows();
+ if(!l.length){M.innerHTML=`<p class="empty">Сейчас напоминать некому</p>`;return}
+ let h=`<div class="blk">`;
+ for(const r of l){const c=carById(r.car)||{},cl=cliById(c.client)||{};
+  h+=`<div class="row"><div class="m"><div>${esc(carTitle(c))}${r.done?" ✓":""}</div><div${r.over?' style="color:#d23b3b"':''}>${r.over?"просрочено":"≈ "+dmy(r.d+" 00:00")}${r.km?" · ~"+r.km.toLocaleString("ru")+" км":""} · ${esc(r.ops)}</div><div>${esc(cl.name||"")}${r.done?" · напомнили":""}</div>
+   <div class="rbtn">${r.done?"":`<button data-rm="${r.car}">✓ Напомнил</button>`}<button data-ra="${r.car}">Записать</button><button data-rc="${r.car}">Карточка</button></div></div>${tel(cl.phone)}</div>`}
+ M.innerHTML=h+`</div><p class="empty">Звоните прямо отсюда (📞). «Напомнил» уйдёт в программу, повторно эту машину не покажет 30 дней.</p>`;
+ M.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await send({type:"reminded",car_id:b.dataset.rm});remList()}catch(e){b.textContent="Не ушло: "+e.message;b.disabled=false}});
+ M.querySelectorAll("[data-ra]").forEach(b=>b.onclick=()=>{const c=carById(b.dataset.ra)||{},cl=cliById(c.client)||{};const r=l.find(x=>String(x.car)===b.dataset.ra);
+  sel={car_id:c.id,client_id:c.client,title:carTitle(c)+(cl.name?" · "+cl.name:"")};go("add");const f=document.getElementById("fr2");if(f&&r)f.value="ТО: "+r.ops});
+ M.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>openCar(b.dataset.rc,remList));
 }
 let itemQ="";
 // позиции прошлых визитов этой машины (свежие сверху, без повторов), кроме текущей записи
