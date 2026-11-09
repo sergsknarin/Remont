@@ -187,3 +187,8 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
 .addl{display:flex;flex-direction:column;gap:8px;margin:8px 0}.addl button{text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font-size:16px}
 .addl small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
 #toast{bottom:calc(76px + env(safe-area-inset-bottom)) !important}
+
+/* 0.20.0: регламент ТО */
+.reg .regkm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px}.reg .regkm input{width:110px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font-size:16px}
+.reg .regkm button{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font-size:15px}
+.reg details{margin:8px 0}.reg summary{cursor:pointer;color:var(--acc)}

@@ -30,7 +30,7 @@ function toSrc(it, k) {
 /* ---------- Экран ---------- */
 function renderTO(v, c) {
   const cards = toFor(c), S = TOB().schedule, links = {};
-  let html = `<div class="adds"><button class="add" id="toRec">🔍 Распознать из PDF</button><button class="add" id="toNew">＋ Своя карточка</button></div>`;
+  let html = (typeof regHtml === 'function' && c.brand ? regHtml(c) : '') + `<div class="adds"><button class="add" id="toRec">🔍 Распознать из PDF</button><button class="add" id="toNew">＋ Своя карточка</button></div>`;
   if (!cards.length) html += '<div class="empty">Для этой машины данных ТО пока нет.<br>Загрузите мануал — программа найдёт объёмы и моменты сама.</div>';
   cards.forEach((x, i) => {
     html += `<div class="card toc"><h3>${x.user ? '🆕 ' : ''}${esc(x.title)}</h3>` +
@@ -44,6 +44,7 @@ function renderTO(v, c) {
       S.rows.map(r => `<tr><td>${esc(r[0])}</td><td><b>${esc(r[1])}</b></td></tr>`).join('') + `</table>${toSrc(links.sch, 'sch')}</div>`;
   }
   v.innerHTML = html;
+  if (typeof bindReg === 'function' && c.brand) bindReg(v, c);
   v.querySelectorAll('a.tosrc').forEach(a => a.onclick = e => { e.preventDefault(); const it = links[a.dataset.k], d = toDoc(it); d && openDoc(d, it[3]); });
   v.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => toEdit(c, cards[b.dataset.ed]));
   v.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {

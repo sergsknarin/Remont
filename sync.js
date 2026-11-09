@@ -44,6 +44,7 @@ function ydMerge(local, remote) {
   o.items = ydMergeList(local.items, remote.items);
   o.codes = ydMergeList(local.codes, remote.codes, 'sols');
   o.toUser = ydMergeList(local.toUser, remote.toUser);
+  o.reg = ydMergeList(local.reg, remote.reg);   // регламент ТО (0.20.0)
   return o;
 }
 const photoIds = db => new Set(db.templates.concat(db.items, db.codes || []).flatMap(w => (w.photos || []).concat((w.sols || []).flatMap(s => s.photos || []))).map(p => p.id));
