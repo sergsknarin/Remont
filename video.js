@@ -7,11 +7,14 @@ function videosHtml(w) {
   const vs = w.videos || [];
   return `<div class="sec"><h2>Видео ${vs.length || ''}</h2></div>
     <div class="vids">${vs.map(x => `<button class="vid" data-vd="${esc(x.id)}">▶ ${esc(x.cap || 'Видео')}<span>${x.size ? fmtMB(x.size) : ''}</span></button>`).join('') || '<div class="muted">Видео нет</div>'}</div>
-    <button class="add" id="aVideo">+ Видео</button>`;
+    <button class="add" id="aVideo">+ Видео</button>
+    <button class="add" id="aToAuto">🔧 В запись Автосервиса</button>`;
 }
 function bindVideos(v, w, mut) {
   v.querySelectorAll('[data-vd]').forEach(b => b.onclick = () => playVideo(w, (w.videos || []).find(x => x.id === b.dataset.vd), mut));
   const a = v.querySelector('#aVideo'); if (a) a.onclick = () => addVideo(mut);
+  // связь с Автосервисом (0.21.0): та же страница-сайт, переход с работой - там выбрать запись
+  const t = v.querySelector('#aToAuto'); if (t) t.onclick = () => { location.href = 'autoservice/?work=' + encodeURIComponent(w.name) + (w.hours ? '&h=' + encodeURIComponent(w.hours) : ''); };
 }
 async function playVideo(w, x, mut) {
   if (!x) return;

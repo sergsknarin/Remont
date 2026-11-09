@@ -64,3 +64,17 @@ function addSheet() {
 // после каждой отрисовки - обновить вкладки
 const _renderTabs = render;
 render = function () { _renderTabs.apply(this, arguments); tabsDraw(); };
+
+// Открыть машину по ссылке из Автосервиса: ?brand=Jetour&model=X70 Plus (0.21.0). Модель - по похожему названию.
+function linkOpen() {
+  const q = new URLSearchParams(location.search), bn = q.get('brand'), mn = q.get('model') || '';
+  if (!bn) return;
+  history.replaceState(null, '', location.pathname);
+  const k = s => norm(s).replace(/[\s\-_]/g, '');
+  const b = DB.brands.find(x => norm(x.name) === norm(bn));
+  if (!b) { setTimeout(() => toast('В справочнике нет марки «' + bn + '»'), 300); return; }
+  const m = mn && (b.models.find(x => k(x.name) === k(mn)) || b.models.find(x => { const a = k(x.name), c = k(mn); return a && c && (a.startsWith(c) || c.startsWith(a)); }));   // сначала точное
+  state.path = [{ type: 'brand', id: b.id }].concat(m ? [{ type: 'model', id: m.id }] : []);
+  history.replaceState(navState(), '');
+  if (mn && !m) setTimeout(() => toast('Модели «' + mn + '» нет - открыта марка ' + b.name), 300);
+}

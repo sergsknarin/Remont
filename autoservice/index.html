@@ -232,10 +232,11 @@ function car(id,back){
  h+=`<div class="bh">История</div>`;
  if(!vis.length)h+=`<p class="empty">Визитов ещё не было</p>`;
  else{h+=`<div class="blk">`;for(const v of vis){const det=[v.works,v.parts].filter(Boolean).join(" · ");h+=`<div class="row tap" data-id="${v.id}"><div class="m"><div>${esc(v.reason||"Визит")}</div>${det?`<div class="det">${esc(det)}</div>`:""}</div><span class="r">${dmy(v.start)}<br>${v.km?v.km.toLocaleString("ru")+" км<br>":""}${Math.round(+v.sum||0).toLocaleString("ru")} ₽</span></div>`}h+=`</div>`}
- h+=`<button class="btn" id="cAppt">＋ Записать на сервис</button><button class="btn sec" id="cRec">Добавить рекомендацию</button><div id="recBox"></div>`;
+ h+=`<button class="btn" id="cAppt">＋ Записать на сервис</button><button class="btn sec" id="cRec">Добавить рекомендацию</button><button class="btn sec" id="cRef">📖 Справочник ремонта</button><div id="recBox"></div>`;
  M.innerHTML=h;
  M.querySelectorAll(".row.tap[data-id]").forEach(r=>r.onclick=()=>appt(r.dataset.id,()=>openCar(c.id,back)));
  cAppt.onclick=()=>{sel={car_id:c.id,client_id:c.client,title:carTitle(c)+(cl.name?" · "+cl.name:"")};go("add")};
+ cRef.onclick=()=>{location.href="../?brand="+encodeURIComponent(c.brand||"")+"&model="+encodeURIComponent(c.model||"")};   // связь со справочником (тот же сайт)
  cRec.onclick=()=>{recBox.innerHTML=`<div class="blk frm"><label for="rt">Что рекомендуете</label><textarea id="rt" placeholder="Колодки передние 30%, менять через 5 т.км"></textarea></div><button class="btn" id="rs">Сохранить рекомендацию</button><div class="err" id="re"></div>`;rt.focus();
   rs.onclick=async()=>{if(!rt.value.trim())return;rs.disabled=true;try{await send({type:"recommend",car_id:c.id,text:rt.value.trim()});car(c.id,back)}catch(e){re.textContent=e.message;rs.disabled=false}}};
 }
@@ -421,7 +422,7 @@ function catPartForm(x){
   ps1.disabled=true;try{await send(o);sentOk("Приход: "+(x?x.name:o.name)+" +"+nh(q)+".",()=>{itemQ="";catPart()})}catch(e){pe1.textContent=e.message;ps1.disabled=false}};
 }
 // выбор записи: сегодня и ожидающие ПК сверху, потом ближайшие и недавние
-function pickAppt(kind){
+function pickAppt(kind,pre){   // pre - работа, пришедшая из справочника ремонта
  head(kind==="work"?"Работы - в какую запись":"Запчасти - в какую запись","",addMenu);
  const t=iso(new Date()),from=iso(new Date(Date.now()-14*864e5)),to=iso(new Date(Date.now()+14*864e5));
  const list=pend.filter(p=>p.type==="appt").map(p=>findAppt("tmp:"+p.file)).filter(Boolean)
@@ -431,7 +432,7 @@ function pickAppt(kind){
  let h=`<div class="blk">`;for(const a of list){const c=carById(a.car),cl=cliById(a.client)||{};
   h+=`<div class="row tap" data-k="${esc(akey(a))}"><span class="time">${a.start.slice(0,10)===t?a.start.slice(11,16):dmy(a.start).slice(0,5)}</span><div class="m"><div>${esc(carTitle(c)||a.title||"Без авто")}</div><div>${esc([cl.name,a.reason].filter(Boolean).join(" · "))}</div></div>${pill(a.status)}</div>`}
  M.innerHTML=h+`</div>`;
- M.querySelectorAll(".row.tap").forEach(r=>r.onclick=()=>{const a=findAppt(r.dataset.k);if(a){itemQ="";itemPick(kind,a,()=>appt(akey(a),()=>go("cal")))}});
+ M.querySelectorAll(".row.tap").forEach(r=>r.onclick=()=>{const a=findAppt(r.dataset.k);if(!a)return;const bk=()=>appt(akey(a),()=>go("cal"));if(pre){chosen=[pre];itemReview(kind,a,bk)}else{itemQ="";itemPick(kind,a,bk)}});
 }
 function add(){
  head("Новая запись","попадёт в программу, когда ПК включён",()=>{sel=null;addMenu()});
@@ -491,7 +492,12 @@ function newClient(keep){
 }
 
 // ---------- запуск ----------
-(async()=>{if(await load(false)){NAV.hidden=false;go("cal")}})();
+(async()=>{if(await load(false)){NAV.hidden=false;
+ const q=new URLSearchParams(location.search),wn=q.get("work");   // из справочника: «В запись Автосервиса»
+ if(wn){history.replaceState(null,"",location.pathname);tab="add";
+  const c=(D.cworks||[]).find(x=>norm(x.name)===norm(wn));
+  pickAppt("work",{key:"lnk",ref:c||null,hist:null,n:wn,b:"",a:"",h:q.get("h")||(c&&c.h)||"",q:1})}
+ else go("cal")}})();
 document.addEventListener("visibilitychange",async()=>{if(document.visibilityState==="visible"&&tok()&&D){await load(false);if(["cal","cli"].includes(tab))go(tab)}});
 </script>
 </body></html>

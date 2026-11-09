@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.20.0';
+const APP_VERSION = '0.21.0';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -616,6 +616,7 @@ function homeScreenHint() {
   const saved = await Store.get('db');
   DB = validDB(saved) ? saved : structuredClone(window.BASE_DB);
   if (!saved) { await save(); LS.set('bkChanges', 0); LS.set('bkFirstChange', 0); } // первый запуск — не изменение
+  if (typeof linkOpen === 'function') linkOpen();   // tabs.js: ?brand=&model= - из Автосервиса (0.21.0)
   render();
   homeScreenHint();
   if (typeof ydInit === 'function') ydInit(); // sync.js — только в общем справочнике
