@@ -1,0 +1,36 @@
+# Сборка Android-приложения «Ремонт и автосервис» (.apk). Запуск: при изменениях в папке android/
+# или вручную: GitHub -> Actions -> «Android APK» -> Run workflow. Готовый файл: Releases -> «Android - последняя версия».
+name: Android APK
+on:
+  push:
+    paths: ['android/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - name: Ключ подписи (из секретов, если заданы)
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then echo "$KS" | base64 -d > android/release.jks; echo "Подпись: постоянный ключ"; else echo "::warning::Секреты не заданы - тестовая подпись (обновление поверх не встанет). См. Шаги_Android.txt"; fi
+      - name: Сборка
+        env:
+          ANDROID_KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
+        run: gradle -p android assembleRelease --no-daemon --stacktrace
+      - name: Имя файла
+        run: cp android/app/build/outputs/apk/release/app-release.apk "Remont-${{ github.run_number }}.apk"
+      - uses: actions/upload-artifact@v4
+        with: { name: apk, path: 'Remont-*.apk' }
+      - name: Выложить в Releases
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          gh release delete android-latest -y --cleanup-tag || true
+          gh release create android-latest "Remont-${{ github.run_number }}.apk" -t "Android - последняя версия (сборка ${{ github.run_number }})" -n "Скачайте .apk на телефон и установите (разрешите установку из этого источника). Сборка от $(date -u +%d.%m.%Y)."

@@ -3,3 +3,7 @@ data/docs-pages.js
 data/errors.js
 docs/
 data/to.js
+android/release.jks
+android/.gradle/
+android/build/
+android/app/build/

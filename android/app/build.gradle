@@ -1,0 +1,31 @@
+plugins { id 'com.android.application' }
+
+// Подпись: ключ из секретов GitHub (ANDROID_KEYSTORE_B64, ANDROID_KEY_PASS). Нет секретов - тестовая подпись (обновление поверх не встанет).
+def ks = file("${rootDir}/release.jks")
+def kpass = System.getenv("ANDROID_KEY_PASS") ?: ""
+
+android {
+    namespace 'ru.sergsknarin.remont'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'ru.sergsknarin.remont'
+        minSdk 24
+        targetSdk 34
+        versionCode((System.getenv("GITHUB_RUN_NUMBER") ?: "1") as int)
+        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+    }
+    signingConfigs {
+        release {
+            if (ks.exists() && kpass) { storeFile ks; storePassword kpass; keyAlias 'remont'; keyPassword kpass }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig (ks.exists() && kpass) ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+dependencies { implementation 'androidx.core:core:1.13.1' }
