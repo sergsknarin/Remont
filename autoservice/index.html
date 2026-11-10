@@ -187,13 +187,16 @@ function clientsMatching(q){
 let cliTimer;
 function cli(){
  head("Клиенты",D.clients.length+" клиентов");
- M.innerHTML=`<input type="search" id="cq" placeholder="Имя, телефон, госномер, VIN" value="${esc(cliQ)}"><div id="cl"></div>`;
+ M.innerHTML=`<input type="search" id="cq" placeholder="Имя, телефон, госномер, VIN" value="${esc(cliQ)}"><button class="btn sec" id="cn">＋ Новый клиент и авто</button><div id="cl"></div>`;
+ cn.onclick=()=>newClient(null);
  cq.oninput=()=>{cliQ=cq.value;clearTimeout(cliTimer);cliTimer=setTimeout(cliList,200)};cliList();
 }
 function cliList(){
  const box=document.getElementById("cl");if(!box)return;const list=clientsMatching(cliQ);
- if(!list.length){box.innerHTML=`<p class="empty">Никого не нашлось</p>`;return}
- let h=`<div class="blk">`;for(const c of list){const cars=D.cars.filter(x=>String(x.client)===String(c.id));
+ const pc=pend.filter(p=>p.type==="client"||p.type==="car");   // 0.22.0: отправлено с телефона, ПК ещё не внёс
+ let h=pc.length?`<div class="bh">Ждут компьютер</div><div class="blk">`+pc.map(p=>`<div class="row"><div class="m"><div>${esc(p.type==="client"?(p.name||p.phone):((cliById(p.client_id)||{}).name||"Клиент"))}</div><div>${esc([p.plate,(p.brand+" "+p.model).trim(),p.type==="car"?"ещё авто":""].filter(Boolean).join(" · ")||"без машины")}</div></div><span class="r">⏳</span></div>`).join("")+`</div>`:"";
+ if(!list.length){box.innerHTML=h+`<p class="empty">Никого не нашлось</p>`;return}
+ h+=`<div class="blk">`;for(const c of list){const cars=D.cars.filter(x=>String(x.client)===String(c.id));
   h+=`<div class="row tap" data-car="${cars.length?cars[0].id:""}"><div class="m"><div>${esc(c.name||"Без имени")}</div><div>${cars.map(x=>`<span class="cl" data-car="${x.id}">${esc(carTitle(x))}</span>`).join(", ")||esc(c.phone)}</div></div>${tel(c.phone)}</div>`}
  box.innerHTML=h+`</div>`;
  box.querySelectorAll(".row.tap").forEach(r=>r.onclick=e=>{if(e.target.closest("a"))return;const s=e.target.closest(".cl");const id=s?s.dataset.car:r.dataset.car;if(id)openCar(id,()=>go("cli"))});
@@ -235,10 +238,11 @@ function car(id,back){
  h+=`<div class="bh">История</div>`;
  if(!vis.length)h+=`<p class="empty">Визитов ещё не было</p>`;
  else{h+=`<div class="blk">`;for(const v of vis){const det=[v.works,v.parts].filter(Boolean).join(" · ");h+=`<div class="row tap" data-id="${v.id}"><div class="m"><div>${esc(v.reason||"Визит")}</div>${det?`<div class="det">${esc(det)}</div>`:""}</div><span class="r">${dmy(v.start)}<br>${v.km?v.km.toLocaleString("ru")+" км<br>":""}${Math.round(+v.sum||0).toLocaleString("ru")} ₽</span></div>`}h+=`</div>`}
- h+=`<button class="btn" id="cAppt">＋ Записать на сервис</button><button class="btn sec" id="cRec">Добавить рекомендацию</button><button class="btn sec" id="cRef">📖 Справочник ремонта</button><div id="recBox"></div>`;
+ h+=`<button class="btn" id="cAppt">＋ Записать на сервис</button><button class="btn sec" id="cRec">Добавить рекомендацию</button><button class="btn sec" id="cRef">📖 Справочник ремонта</button><div id="recBox"></div>${c.client?`<button class="btn sec" id="cMore">＋ Ещё авто этому клиенту</button>`:""}`;
  M.innerHTML=h;
  M.querySelectorAll(".row.tap[data-id]").forEach(r=>r.onclick=()=>appt(r.dataset.id,()=>openCar(c.id,back)));
  cAppt.onclick=()=>{sel={car_id:c.id,client_id:c.client,title:carTitle(c)+(cl.name?" · "+cl.name:"")};go("add")};
+ if(window.cMore)cMore.onclick=()=>newCar(c,cl,back);
  cRef.onclick=()=>{location.href="../?brand="+encodeURIComponent(c.brand||"")+"&model="+encodeURIComponent(c.model||"")};   // связь со справочником (тот же сайт)
  cRec.onclick=()=>{recBox.innerHTML=`<div class="blk frm"><label for="rt">Что рекомендуете</label><textarea id="rt" placeholder="Колодки передние 30%, менять через 5 т.км"></textarea></div><button class="btn" id="rs">Сохранить рекомендацию</button><div class="err" id="re"></div>`;rt.focus();
   rs.onclick=async()=>{if(!rt.value.trim())return;rs.disabled=true;try{await send({type:"recommend",car_id:c.id,text:rt.value.trim()});car(c.id,back)}catch(e){re.textContent=e.message;rs.disabled=false}}};
@@ -500,7 +504,7 @@ function pickCar(){
 }
 function restore(k){if(!window.fd)return;fd.value=k.d;ft.value=k.t;fdur.value=k.dur;fp.value=k.p;fk.value=k.k;fr2.value=k.r}
 function newClient(keep){
- head("Новый клиент","и его автомобиль",()=>pickCar());
+ head("Новый клиент","и его автомобиль",keep?()=>pickCar():()=>go("cli"));
  M.innerHTML=`<div class="blk frm"><label for="nn">Имя</label><input type="text" id="nn" autocapitalize="words">
   <label for="np">Телефон</label><input type="tel" id="np" placeholder="+7">
   <label for="nb">Марка</label><input type="text" id="nb" autocapitalize="words"><label for="nm">Модель</label><input type="text" id="nm">
@@ -509,9 +513,23 @@ function newClient(keep){
  ns.onclick=async()=>{if(!nn.value.trim()&&!np.value.trim()){ne.textContent="Укажите имя или телефон";return}ns.disabled=true;ne.textContent="Отправка…";
   const tmp="tmp-"+Date.now();
   try{await send({type:"client",tmp,name:nn.value.trim(),phone:np.value.trim(),brand:nb.value.trim(),model:nm.value.trim(),plate:nl.value.trim().toUpperCase(),vin:nv.value.replace(/\s/g,"").toUpperCase()});
+   if(!keep){sentDone("Клиент отправлен: "+[nn.value.trim()||np.value.trim(),nl.value.toUpperCase()].filter(Boolean).join(", "),()=>newClient(null));return}   // 0.22.0: с вкладки «Клиенты»
    sel={client_tmp:tmp,title:[nl.value.toUpperCase(),(nb.value+" "+nm.value).trim(),nn.value].filter(Boolean).join(" · ")+" (новый)"};add();restore(keep);fc.textContent=sel.title}
   catch(e){ne.textContent="Нет связи: "+e.message;ns.disabled=false}};
 }
+
+// 0.22.0: ещё авто существующему клиенту (ПК 0.33.50+ понимает type:"car")
+function newCar(c,cl,back){
+ head("Ещё авто",cl.name||"клиенту",()=>car(c.id,back));
+ M.innerHTML=`<div class="blk frm"><label for="nb">Марка</label><input type="text" id="nb" autocapitalize="words"><label for="nm">Модель</label><input type="text" id="nm">
+  <label for="nl">Госномер</label><input type="text" id="nl" autocapitalize="characters"><label for="nv">VIN</label><input type="text" id="nv" autocapitalize="characters" maxlength="17"></div>
+  <button class="btn" id="ns">Сохранить авто</button><div class="err" id="ne"></div>`;
+ ns.onclick=async()=>{if(!(nb.value+nm.value+nl.value+nv.value).trim()){ne.textContent="Укажите марку, госномер или VIN";return}ns.disabled=true;ne.textContent="Отправка…";
+  try{await send({type:"car",client_id:c.client,brand:nb.value.trim(),model:nm.value.trim(),plate:nl.value.trim().toUpperCase(),vin:nv.value.replace(/\s/g,"").toUpperCase()});
+   sentDone("Авто отправлено: "+[nl.value.toUpperCase(),(nb.value+" "+nm.value).trim()].filter(Boolean).join(" · ")+" → "+(cl.name||"клиент"),()=>newCar(c,cl,back))}
+  catch(e){ne.textContent="Не отправилось на Яндекс.Диск: "+e.message;ns.disabled=false}};
+}
+function sentDone(t,again){M.innerHTML=`<p class="empty" style="color:var(--ok)">✓ ${esc(t)}<br>Появится в программе, когда компьютер включён (программа 0.33.50 или новее).</p><button class="btn sec" id="sAgain">Добавить ещё</button><button class="btn sec" id="sCli">К клиентам</button>`;sAgain.onclick=again;sCli.onclick=()=>go("cli")}
 
 // ---------- запуск ----------
 (async()=>{if(await load(false)){NAV.hidden=false;
