@@ -71,6 +71,8 @@ input[type=search]{width:100%;font:17px inherit;font-family:inherit;padding:11px
 .frm textarea{min-height:70px;resize:vertical}
 .pick{padding:4px 14px 12px;font-size:17px;border-bottom:1px solid var(--sep);cursor:pointer;color:var(--tint)}
 a.site{color:inherit;text-decoration:none}
+.ph{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px}.ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px}
+.notes{white-space:pre-wrap;padding:11px 14px;font-size:15px;line-height:1.35}
 </style>
 </head>
 <body>
@@ -116,9 +118,9 @@ async function ydGetJson(p){const r=await yd("/resources/download?path="+encodeU
   throw new Error("Диск: скачивание файла с "+host+" ("+log.join("; ")+";"+m+")")}if(!f.ok)throw new Error("Диск: файл "+f.status);const t=await f.text();try{return JSON.parse(t.replace(/^\uFEFF/,""))}catch(e){throw new Error("файл "+p.split("/").pop()+" не читается ("+t.length+" байт): "+e.message)}}
 async function ydPut(p,text){
  let r=await yd("/resources/upload?overwrite=true&path="+encodeURIComponent(p));
- if(r.status===409){await yd("/resources?path="+encodeURIComponent(DIR),{method:"PUT"});await yd("/resources?path="+encodeURIComponent(DIR+"/inbox"),{method:"PUT"});r=await yd("/resources/upload?overwrite=true&path="+encodeURIComponent(p))}
+ if(r.status===409){await yd("/resources?path="+encodeURIComponent(DIR),{method:"PUT"});await yd("/resources?path="+encodeURIComponent(DIR+"/inbox"),{method:"PUT"});await yd("/resources?path="+encodeURIComponent(DIR+"/inbox/photos"),{method:"PUT"});r=await yd("/resources/upload?overwrite=true&path="+encodeURIComponent(p))}
  if(!r.ok)throw new Error("Диск: загрузка "+r.status);const{href}=await r.json();
- const u=await fetch(href,{method:"PUT",body:new Blob([text],{type:"application/json"})});if(!u.ok&&u.status!==201&&u.status!==202)throw new Error("Диск: запись "+u.status);
+ const u=await fetch(href,{method:"PUT",body:text instanceof Blob?text:new Blob([text],{type:"application/json"})});if(!u.ok&&u.status!==201&&u.status!==202)throw new Error("Диск: запись "+u.status);
 }
 function loginScreen(msg){
  NAV.hidden=true;document.getElementById("sync").hidden=true;head("Автосервис","через Яндекс.Диск");
@@ -132,6 +134,8 @@ async function load(force){
  if(!tok()){loginScreen();return false}
  const cached=LSg("as_data",null);
  if(cached&&!D){D=cached;showSync()}
+ if(!navigator.onLine){showSync();return !!D}   // 0.24.0: без интернета - последние данные с ПК
+ flush();
  if(!force&&D&&Date.now()-(LSg("as_loaded",0))<60000)return true;
  setSync("Загрузка с Диска…");
  try{const j=await ydGetJson(DIR+"/data.json");
@@ -149,7 +153,8 @@ async function load(force){
 }
 function fmtTime(s){if(!s)return"—";const d=new Date(s.replace(" ","T"));return isNaN(d)?s:d.toLocaleString("ru",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
 function setSync(t){document.getElementById("sync").hidden=false;document.getElementById("syncTxt").textContent=t}
-function showSync(){setSync("Данные с ПК на "+fmtTime(D&&D.exported)+(pend.length?" · ждут ПК: "+pend.length:""))}
+function showSync(){const q=pend.filter(p=>p.q).length,w=pend.length-q;
+ setSync((navigator.onLine?"":"Нет интернета · ")+"Данные с ПК на "+fmtTime(D&&D.exported)+(q?" · ⏳ ждут интернета: "+q:"")+(w?" · ждут ПК: "+w:""))}
 document.getElementById("syncBtn").onclick=async()=>{await load(true);if(tab==="car"&&carOpen&&carById(carId))car(carId,()=>go("car"));else go(tab)};
 
 // ---------- выборки из выгрузки ----------
@@ -265,11 +270,29 @@ function appt(id,back){
  let h=`<div class="blk"><div class="fld"><div>Клиент</div><div>${esc(cl.name||"—")} ${tel(cl.phone)}</div></div><div class="fld"><div>Причина</div><div>${esc(a.reason||"—")}</div></div><div class="fld"><div>Статус</div><div>${pill(a.status)}</div></div></div>${a.tmp?`<p class="empty">Запись ещё не дошла до ПК - добавленное внесётся вместе с ней.</p>`:""}`;
  h+=`<div class="bh">Работы</div>${lst(a.works,"work")}<button class="btn sec" id="aW">＋ Работа</button>`;
  h+=`<div class="bh">Запчасти</div>${lst(a.parts,"part")}<button class="btn sec" id="aP">＋ Запчасть</button>`;
+ const pn=pend.filter(p=>p.type==="note"&&p.akey===akey(a)),pp=pend.filter(p=>p.type==="photo"&&p.akey===akey(a));   // 0.25.0
+ h+=`<div class="bh">Комментарии</div><div class="blk">${a.notes?`<div class="notes">${esc(a.notes)}</div>`:""}${pn.map(p=>`<div class="row"><div class="m"><div>${esc(p.text)}</div></div><span class="pill g">${p.q?"⏳ нет сети":"Ждёт ПК"}</span></div>`).join("")}${!a.notes&&!pn.length?`<p class="empty">Пока нет</p>`:""}</div>`;
+ h+=`<div class="bh">Фото: на ПК ${a.nfiles||0}${pp.length?", отправлено с телефона "+pp.length:""}</div>${pp.length?`<div class="blk ph" id="aPv"></div>`:""}`;
+ h+=`<input type="file" id="aPf" accept="image/*" multiple hidden><button class="btn" id="aPh">📷 Добавить фото</button><div id="aPs" class="err" style="color:var(--fg)"></div><button class="btn sec" id="aNt">💬 Комментарий</button><div id="aNb"></div>`;
  if(c)h+=`<button class="btn sec" id="aC">Карточка авто</button>`;
  M.innerHTML=h;M.scrollTop=0;
+ if(pp.length)Promise.all(pp.map(p=>idb("get",p.img).catch(()=>null))).then(bs=>{const box=document.getElementById("aPv");if(box)box.innerHTML=pp.map((p,i)=>bs[i]?`<img src="${URL.createObjectURL(bs[i])}" alt="">`:`<div class="empty">📷 ${p.q?"⏳":"✓"}</div>`).join("")});
+ const ref=()=>a.tmp?{appt_tmp:a.tmp,akey:akey(a)}:{appt_id:a.id,akey:akey(a)};
+ aPh.onclick=()=>aPf.click();
+ aPf.onchange=async()=>{const fs=[...aPf.files];if(!fs.length)return;aPh.disabled=true;
+  for(let i=0;i<fs.length;i++){aPs.textContent="Фото "+(i+1)+" из "+fs.length+"…";
+   try{const blob=await shrink(fs[i]);await send({type:"photo",...ref()},blob)}catch(e){aPs.textContent="Фото "+(i+1)+": "+e.message;aPh.disabled=false;return}}
+  appt(akey(a),back)};
+ aNt.onclick=()=>{aNb.innerHTML=`<div class="blk frm"><label for="aTx">Комментарий</label><textarea id="aTx" placeholder="Что сделали, что заметили"></textarea></div><button class="btn" id="aNs">Сохранить комментарий</button><div class="err" id="aNe"></div>`;aTx.focus();
+  aNs.onclick=async()=>{if(!aTx.value.trim()){aNe.textContent="Напишите комментарий";return}aNs.disabled=true;
+   try{await send({type:"note",text:aTx.value.trim(),...ref()});appt(akey(a),back)}catch(e){aNe.textContent="Не сохранилось: "+e.message;aNs.disabled=false}}};
  aW.onclick=()=>{itemQ="";itemPick("work",a,back)};aP.onclick=()=>{itemQ="";itemPick("part",a,back)};
  if(c)aC.onclick=()=>openCar(c.id,()=>appt(akey(a),back));
 }
+function shrink(file,max=1600,q=0.82){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();   // 0.25.0
+ im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+  c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?ok(b):no(new Error("не удалось сжать фото")),"image/jpeg",q)};
+ im.onerror=()=>{URL.revokeObjectURL(u);no(new Error("не открывается «"+file.name+"» ("+(file.type||"формат неизвестен")+")"))};im.src=u})}
 // ---------- ТО по регламенту (0.33.47; считает программа на ПК) ----------
 function toFld(id){const t=(D.to||{})[id];if(!t)return"";const over=t.d<=iso(new Date());
  return `<div class="fld"><div>Ближайшее ТО (по регламенту)</div><div${over?' style="color:var(--bad,#d23b3b)"':''}>≈ ${dmy(t.d+" 00:00")}${t.km?" · ~"+t.km.toLocaleString("ru")+" км":""}<br><span style="font-size:13px;color:var(--pmut,#888)">${esc(t.ops)}</span></div></div>`}
@@ -394,12 +417,32 @@ function findList(){
 function vinYear(v){const c="ABCDEFGHJKLMNPRSTVWXY123456789",i=c.indexOf(v[9]);if(i<0)return"";let y=1980+i;while(y+30<=new Date().getFullYear()+1)y+=30;return String(y)}
 
 // ---------- новое с телефона -> app:/autoservice/inbox/ ----------
-async function send(o){
- const file=Date.now()+"-"+Math.random().toString(36).slice(2,8)+".json";
- const msg={...o,file,at:new Date().toISOString(),from:"телефон"};
- await ydPut(DIR+"/inbox/"+file,JSON.stringify(msg));
- pend.push(msg);LSs("as_pending",pend);showSync();return msg;
+// 0.24.0: всё уходит через очередь: без интернета копится в телефоне (фото - в IndexedDB) и досылается само
+let lastQ=false,flushing=false;
+const IDB=()=>new Promise((ok,no)=>{const r=indexedDB.open("as_out",1);r.onupgradeneeded=()=>r.result.createObjectStore("f");r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+async function idb(op,k,v){const db=await IDB();return new Promise((ok,no)=>{const t=db.transaction("f",op==="get"?"readonly":"readwrite"),st=t.objectStore("f");
+ const r=op==="get"?st.get(k):op==="put"?st.put(v,k):st.delete(k);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
+async function sendOne(m){
+ if(m.type==="photo"){const b=await idb("get",m.img);if(b)await ydPut(DIR+"/inbox/photos/"+m.img,b);else if(m.q==="img")throw new Error("фото потерялось в памяти телефона")}
+ const {q,err,...out}=m;await ydPut(DIR+"/inbox/"+m.file,JSON.stringify(out));
+ if(m.type==="photo")idb("del",m.img).catch(()=>{});
 }
+async function flush(){
+ if(flushing||!navigator.onLine||!tok())return;flushing=true;let n=0;
+ try{for(const m of pend.filter(p=>p.q)){try{await sendOne(m);m.q=false;delete m.err;n++}catch(e){m.err=e.message;if(e.message==="login")break}LSs("as_pending",pend)}}
+ finally{flushing=false}
+ if(n&&D)showSync();
+}
+async function send(o,blob){
+ const file=Date.now()+"-"+Math.random().toString(36).slice(2,8)+".json";
+ const msg={...o,file,at:new Date().toISOString(),from:"телефон",q:true};
+ if(blob){msg.img=file.replace(".json",".jpg");await idb("put",msg.img,blob)}
+ pend.push(msg);LSs("as_pending",pend);
+ if(navigator.onLine&&!flushing)try{await sendOne(msg);msg.q=false}catch(e){msg.err=e.message}
+ LSs("as_pending",pend);lastQ=!!msg.q;if(D)showSync();return msg;
+}
+const qNote=()=>lastQ?"Нет интернета - сохранено в телефоне, отправится само, когда появится сеть.":"Появится в программе, когда компьютер включён.";
+window.addEventListener("online",()=>{flush();if(D)showSync()});window.addEventListener("offline",()=>{if(D)showSync()});
 // «＋»: что добавить - запись, работы или запчасти в запись
 function addMenu(){
  head("Добавить","");
@@ -408,7 +451,7 @@ function addMenu(){
  mA.onclick=add;mW.onclick=()=>pickAppt("work");mP.onclick=()=>pickAppt("part");mCW.onclick=catWork;mCP.onclick=()=>{itemQ="";catPart()};
 }
 const numv=v=>parseFloat(String(v||"").replace(/\s/g,"").replace(",","."));
-function sentOk(t,back){M.innerHTML=`<p class="empty" style="color:var(--ok)">✓ ${esc(t)}<br>Появится в программе, когда компьютер включён.</p><button class="btn sec" id="sAgain">Добавить ещё</button><button class="btn sec" id="sMenu">Готово</button>`;sAgain.onclick=back;sMenu.onclick=addMenu}
+function sentOk(t,back){M.innerHTML=`<p class="empty" style="color:var(--ok)">✓ ${esc(t)}<br>${qNote()}</p><button class="btn sec" id="sAgain">Добавить ещё</button><button class="btn sec" id="sMenu">Готово</button>`;sAgain.onclick=back;sMenu.onclick=addMenu}
 // новая работа в справочник
 function catWork(){
  head("Новая работа","в справочник работ",addMenu);
@@ -529,15 +572,16 @@ function newCar(c,cl,back){
    sentDone("Авто отправлено: "+[nl.value.toUpperCase(),(nb.value+" "+nm.value).trim()].filter(Boolean).join(" · ")+" → "+(cl.name||"клиент"),()=>newCar(c,cl,back))}
   catch(e){ne.textContent="Не отправилось на Яндекс.Диск: "+e.message;ns.disabled=false}};
 }
-function sentDone(t,again){M.innerHTML=`<p class="empty" style="color:var(--ok)">✓ ${esc(t)}<br>Появится в программе, когда компьютер включён (программа 0.33.50 или новее).</p><button class="btn sec" id="sAgain">Добавить ещё</button><button class="btn sec" id="sCli">К клиентам</button>`;sAgain.onclick=again;sCli.onclick=()=>go("cli")}
+function sentDone(t,again){M.innerHTML=`<p class="empty" style="color:var(--ok)">✓ ${esc(t)}<br>${qNote()} (программа 0.33.50 или новее)</p><button class="btn sec" id="sAgain">Добавить ещё</button><button class="btn sec" id="sCli">К клиентам</button>`;sAgain.onclick=again;sCli.onclick=()=>go("cli")}
 
 // ---------- запуск ----------
+if("serviceWorker" in navigator)navigator.serviceWorker.register("../sw.js").catch(()=>{});   // 0.24.0: страница хранится в телефоне
 (async()=>{if(await load(false)){NAV.hidden=false;
  const q=new URLSearchParams(location.search),wn=q.get("work");   // из справочника: «В запись Автосервиса»
  if(wn){history.replaceState(null,"",location.pathname);tab="add";
   const c=(D.cworks||[]).find(x=>norm(x.name)===norm(wn));
   pickAppt("work",{key:"lnk",ref:c||null,hist:null,n:wn,b:"",a:"",h:q.get("h")||(c&&c.h)||"",q:1})}
  else go("cal")}})();
-document.addEventListener("visibilitychange",async()=>{if(document.visibilityState==="visible"&&tok()&&D){await load(false);if(["cal","cli"].includes(tab))go(tab)}});
+document.addEventListener("visibilitychange",async()=>{if(document.visibilityState==="visible"&&tok()&&D){flush();await load(false);if(["cal","cli"].includes(tab))go(tab)}});
 </script>
 </body></html>
