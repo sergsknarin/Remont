@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#f2f2f7">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<title>Мой гараж</title>
+<style>
+:root{--ph:#f2f2f7;--card:#fff;--fg:#111;--mut:#6e6e73;--sep:#d1d1d6;--tint:#0a64d6;--ok:#2e9d4b;--warn:#d97706;--bad:#d23b3b;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--ph:#000;--card:#1c1c1e;--fg:#f2f2f7;--mut:#98989f;--sep:#38383a;--tint:#4b9bff;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ph);color:var(--fg);font:16px -apple-system,"SF Pro Text",Roboto,Arial,sans-serif;display:flex;flex-direction:column;-webkit-tap-highlight-color:transparent}
+.top{padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right)) 6px max(16px,env(safe-area-inset-left))}
+.top .t{font-size:28px;font-weight:700;line-height:1.15}
+.top .s{font-size:13px;color:var(--mut);min-height:16px}
+.top .back{color:var(--tint);font-size:16px;background:none;border:0;padding:0 0 4px;cursor:pointer}
+.sync{font-size:12px;color:var(--mut);display:flex;gap:8px;align-items:center;margin-top:2px}
+.sync button{background:none;border:0;color:var(--tint);font:12px inherit;font-family:inherit;padding:0;cursor:pointer}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 max(12px,env(safe-area-inset-right)) 16px max(12px,env(safe-area-inset-left))}
+nav{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--sep);background:var(--card);padding:6px 0 calc(env(safe-area-inset-bottom,0px) + 6px)}
+nav button{background:none;border:0;color:var(--mut);font:11px inherit;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:2px 0}
+nav button b{font-size:21px;font-weight:400;line-height:1}
+nav button.cur{color:var(--tint)}
+.blk{background:var(--card);border-radius:12px;margin-top:10px;overflow:hidden}
+.bh{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;padding:14px 4px 0}
+.row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--sep);min-height:44px}
+.row:first-child{border-top:0}
+.row.tap{cursor:pointer}
+.row .m{flex:1;min-width:0}
+.row .m div:first-child{font-size:16px}
+.row .m div+div{font-size:13px;color:var(--mut);overflow:hidden;text-overflow:ellipsis}
+.row .r{font-size:14px;color:var(--mut);white-space:nowrap;text-align:right}
+.time{font-variant-numeric:tabular-nums;font-weight:600;min-width:46px}
+.pill{flex:none;font-size:11px;padding:3px 8px;border-radius:9px;color:#fff;background:var(--tint);white-space:nowrap}
+.pill.ok{background:var(--ok)}.pill.w{background:var(--warn)}.pill.g{background:var(--mut)}
+.days{display:flex;gap:6px;overflow-x:auto;padding:8px 2px 2px}
+.days button{flex:1 0 42px;text-align:center;padding:6px 0;border-radius:10px;background:var(--card);font:12px inherit;font-family:inherit;color:var(--mut);border:0;cursor:pointer}
+.days button b{display:block;font-size:17px;color:var(--fg)}
+.days button i{display:block;font-style:normal;font-size:10px;height:12px;color:var(--tint)}
+.days button.cur{background:var(--tint);color:#fff}.days button.cur b,.days button.cur i{color:#fff}
+.wk{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.wk button{background:none;border:0;color:var(--tint);font:15px inherit;font-family:inherit;padding:6px 4px;cursor:pointer}
+input[type=search]{width:100%;font:17px inherit;font-family:inherit;padding:11px 12px;border-radius:10px;border:0;background:var(--card);color:var(--fg);margin-top:10px;-webkit-appearance:none}
+.btn{display:block;width:100%;text-align:center;background:var(--tint);color:#fff;border-radius:12px;padding:13px;font:600 16px inherit;font-family:inherit;border:0;margin-top:14px;cursor:pointer;text-decoration:none}
+.btn.sec{background:var(--card);color:var(--tint)}
+.btn:disabled{opacity:.5}
+.call{color:var(--ok);font-size:22px;text-decoration:none;padding:4px}
+.fld{padding:9px 14px;border-top:1px solid var(--sep)}
+.fld:first-child{border-top:0}
+.fld div:first-child{font-size:12px;color:var(--mut)}
+.fld div+div{font-size:16px;word-break:break-word}
+.rbtn{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}.rbtn button{font:13px var(--ui,system-ui);padding:5px 10px;border-radius:8px;border:1px solid var(--sep,#ccc);background:var(--card,#fff);color:var(--tint,#0a64d6)}
+.ck{font-size:24px;margin-right:10px;color:var(--tint);line-height:1}
+.sbar{position:sticky;bottom:0;padding:6px 0 4px;background:linear-gradient(transparent,var(--ph) 30%)}
+.rv{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--sep)}.rv .m{flex:1;min-width:0}.rv .m div:last-child{font-size:13px;color:var(--mut)}
+.frm .rv input{width:64px;flex:none;padding:6px;border:1px solid var(--sep);border-radius:8px;text-align:center;font-size:16px}.rv .u{font-size:13px;color:var(--mut)}
+.rv .x{border:0;background:none;color:var(--mut);font-size:18px;padding:4px 6px;cursor:pointer}
+.det{font-size:13px;color:var(--mut);margin-top:3px}
+.empty{color:var(--mut);text-align:center;padding:28px 10px;font-size:15px;line-height:1.45}
+.err{color:var(--bad);font-size:14px;margin-top:10px;min-height:18px}
+.frm label{display:block;font-size:12px;color:var(--mut);padding:9px 14px 0}
+.frm input,.frm select,.frm textarea{width:100%;border:0;background:none;color:var(--fg);font:17px inherit;font-family:inherit;padding:2px 14px 10px;margin:0;border-bottom:1px solid var(--sep);border-radius:0;-webkit-appearance:none}
+.frm textarea{min-height:70px;resize:vertical}
+.pick{padding:4px 14px 12px;font-size:17px;border-bottom:1px solid var(--sep);cursor:pointer;color:var(--tint)}
+a.site{color:inherit;text-decoration:none}
+.ph{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px}.ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px}
+.notes{white-space:pre-wrap;padding:11px 14px;font-size:15px;line-height:1.35}
+
+nav{grid-template-columns:repeat(2,1fr)}
+.btn{display:block;width:100%;margin-top:10px;padding:13px;border:0;border-radius:12px;background:var(--tint);color:#fff;font:16px inherit;font-family:inherit;cursor:pointer}
+.btn.sec{background:var(--card);color:var(--tint)}
+.empty{text-align:center;color:var(--mut);padding:28px 16px;line-height:1.4}
+.err{color:var(--bad);padding:8px 4px;font-size:14px}
+.fld{padding:9px 14px;border-top:1px solid var(--sep)}.fld:first-child{border-top:0}.fld div:first-child{font-size:12px;color:var(--mut)}
+.v{padding:10px 14px;border-top:1px solid var(--sep)}.v:first-child{border-top:0}.v .h{font-weight:600}.v .l{font-size:14px;color:var(--mut);margin-top:3px;line-height:1.35}
+input[type=search]{width:100%;margin-top:10px;padding:10px 12px;border-radius:10px;border:0;background:var(--card);color:var(--fg);font:16px inherit;font-family:inherit}
+</style></head><body>
+<div class="top"><div class="t" id="T">Мой гараж</div><div class="s" id="S"></div><div class="sync"><span id="syncTxt"></span><button id="syncBtn">Обновить</button></div></div>
+<main id="M"></main>
+<nav id="NAV" hidden><button data-t="my" class="cur"><b>🚗</b>Мои машины</button><button data-t="feed"><b>🔧</b>Работы мастерской</button></nav>
+<script src="../vk.js"></script>
+<script>
+/* 1.0 (сайт 0.28.0): «Мой гараж» для друзей - свои машины и история обслуживания; «Работы мастерской» - без имён, номеров, VIN и сумм.
+   Данные даёт облачная функция (1.1.0+) из выгрузки Автосервиса. Без интернета - последние полученные. */
+const M=document.getElementById("M"),T=document.getElementById("T"),S=document.getElementById("S"),NAV=document.getElementById("NAV");
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dmy=s=>s&&s.length>=10?s.slice(8,10)+"."+s.slice(5,7)+"."+s.slice(0,4):"";
+const km=n=>n?Number(n).toLocaleString("ru")+" км":"";
+const money=n=>Number(n||0).toLocaleString("ru",{maximumFractionDigits:2})+" ₽";
+const norm=s=>String(s||"").toLowerCase().replace(/ё/g,"е");
+let tab="my",G=vkLS.get("gar",null),F=vkLS.get("feed",null),q=vkLS.get("feedQ",null);
+function sync(t){document.getElementById("syncTxt").textContent=t}
+function login(msg){NAV.hidden=true;T.textContent="Мой гараж";S.textContent="";sync("");
+ M.innerHTML=`<p class="empty">${msg?esc(msg)+"<br><br>":""}Здесь ваши машины и история обслуживания в мастерской,<br>а также «Работы мастерской» - что и на каких машинах делали.<br><br>Вход - через ВКонтакте.</p><button class="btn" id="vkGo">Войти через ВК</button><a class="btn sec" style="text-align:center;text-decoration:none" href="../">Справочник ремонта</a>`;
+ document.getElementById("vkGo").onclick=()=>vkLogin().catch(e=>{M.insertAdjacentHTML("beforeend",`<p class="err">${esc(e.message)}</p>`)})}
+async function load(){
+ if(!navigator.onLine){sync("Нет интернета - показано последнее полученное");return}
+ sync("Загрузка…");
+ try{const [g,f]=await Promise.all([fnS({a:"garage"}),fnS({a:"feed"})]);G=g;F=f;vkLS.set("gar",g);vkLS.set("feed",f);sync("Данные мастерской на "+(g.exported||f.exported||"").replace("T"," ").slice(0,16))}
+ catch(e){if(!vkS()){login(e.message);return false}sync("Не загрузилось: "+e.message+(G?" - показано последнее полученное":""))}
+ return true}
+function my(){T.textContent="Мой гараж";S.textContent=G&&G.name?G.name:"";
+ if(!G){M.innerHTML=`<p class="empty">Нет данных. Нажмите «Обновить», когда будет интернет.</p>`;return}
+ if(!G.linked){M.innerHTML=`<p class="empty">${esc(G.msg)}</p>`;return}
+ if(!G.cars.length){M.innerHTML=`<p class="empty">За вами пока нет машин в мастерской.</p>`;return}
+ let h="";
+ for(const c of G.cars){const vs=G.visits.filter(v=>String(v.car)===String(c.id)),t=G.to&&G.to[c.id];
+  h+=`<div class="bh">${esc([(c.brand+" "+c.model).trim(),c.year].filter(Boolean).join(" · "))}</div><div class="blk">
+   <div class="fld"><div>Госномер</div><div>${esc(c.plate||"-")}</div></div>${c.vin?`<div class="fld"><div>VIN</div><div>${esc(c.vin)}</div></div>`:""}
+   ${vs[0]&&vs[0].km?`<div class="fld"><div>Последний пробег в мастерской</div><div>${km(vs[0].km)} (${dmy(vs[0].date)})</div></div>`:""}
+   ${t?`<div class="fld"><div>Ближайшее ТО</div><div>${dmy(t.d)}${t.km?" или "+km(t.km):""}${t.ops?" - "+esc(t.ops):""}</div></div>`:""}</div>
+   <div class="bh">История обслуживания: ${vs.length}</div><div class="blk">${vs.length?vs.map(v=>`<div class="v"><div class="h">${dmy(v.date)}${v.km?" · "+km(v.km):""}${G.sums&&v.sum?" · "+money(v.sum):""}</div>
+    ${v.reason?`<div class="l">Обращение: ${esc(v.reason)}</div>`:""}${v.works?`<div class="l">Работы: ${esc(v.works)}</div>`:""}${v.parts?`<div class="l">Запчасти: ${esc(v.parts)}</div>`:""}${v.rec?`<div class="l">Рекомендации: ${esc(v.rec)}</div>`:""}</div>`).join(""):`<p class="empty">Пока нет</p>`}</div>`}
+ M.innerHTML=h;M.scrollTop=0}
+function feed(){T.textContent="Работы мастерской";S.textContent="без имён, номеров и сумм";
+ if(!F){M.innerHTML=`<p class="empty">Нет данных. Нажмите «Обновить», когда будет интернет.</p>`;return}
+ if(q===null)q=G&&G.cars&&G.cars[0]?(G.cars[0].brand+" "+G.cars[0].model).trim():"";
+ M.innerHTML=`<input type="search" id="fq" placeholder="Марка, модель или работа (например: Jetour X70, сайлентблок)" value="${esc(q)}"><div id="fl"></div>`;
+ const draw=()=>{const w=norm(q).split(/\s+/).filter(Boolean),l=F.list.filter(x=>w.every(t=>norm(x.brand+" "+x.model+" "+x.works+" "+x.parts).includes(t)));
+  fl.innerHTML=l.length?`<div class="bh">Найдено: ${l.length}</div><div class="blk">`+l.slice(0,200).map(x=>`<div class="v"><div class="h">${esc((x.brand+" "+x.model).trim()||"Авто")}${x.year?" "+esc(x.year):""} · ${esc(x.m)}${x.km?" · "+km(x.km):""}</div>
+   <div class="l">Работы: ${esc(x.works)}</div>${x.parts?`<div class="l">Запчасти: ${esc(x.parts)}</div>`:""}</div>`).join("")+`</div>`:`<p class="empty">Ничего не нашлось${q?" по «"+esc(q)+"»":""}.</p>`};
+ fq.oninput=()=>{q=fq.value;vkLS.set("feedQ",q);draw()};draw();M.scrollTop=0}
+function go(t){tab=t;for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t===t);(t==="my"?my:feed)()}
+NAV.onclick=e=>{const b=e.target.closest("button");if(b)go(b.dataset.t)};
+document.getElementById("syncBtn").onclick=async()=>{if(await load()!==false&&vkS())go(tab)};
+if("serviceWorker" in navigator)navigator.serviceWorker.register("../sw.js").catch(()=>{});
+(async()=>{if(!VK_ON()){login("Вход через ВК не настроен.");return}
+ if(!vkS()){login(vkLS.get("vkDenied",null)?"Вашего ВК нет в списке доступа - напишите владельцу.":"");return}
+ NAV.hidden=false;if(G||F)go(tab);if(await load()!==false&&vkS())go(tab)})();
+</script></body></html>

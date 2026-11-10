@@ -145,7 +145,7 @@ function loginScreen(msg){
  const vg=document.getElementById("vkGo");if(vg)vg.onclick=()=>vkLogin().catch(e=>alert(e.message));
 }
 async function load(force){
- if(!tok()&&vkRole()==="friend"){NAV.hidden=true;head("Автосервис","");M.innerHTML=`<p class="empty">Вы вошли через ВК как друг (${esc((vkS()||{}).name||"")}).<br>Автосервис доступен только владельцу - здесь данные клиентов.<br><br><a href="../">Открыть Справочник ремонта</a></p>`;return false}
+ if(!tok()&&vkRole()==="friend"){NAV.hidden=true;head("Автосервис","");M.innerHTML=`<p class="empty">Вы вошли через ВК как друг (${esc((vkS()||{}).name||"")}).<br>Автосервис доступен только владельцу - здесь данные клиентов.<br><br><a href="../garage/">🚗 Мой гараж</a> · <a href="../">Справочник ремонта</a></p>`;return false}
  if(!tok()&&!vkProxy()){loginScreen(vkLS.get("vkS",null)===null&&localStorage.getItem("rr_vkDenied")?"Вашего ВК нет в списке доступа.":"");return false}
  const cached=LSg("as_data",null);
  if(cached&&!D){D=cached;showSync()}

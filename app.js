@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.26.0';
+const APP_VERSION = '0.28.0';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -571,6 +571,7 @@ menu.onclick = async e => {
   if (act === 'memory') memoryScreen();
   if (act === 'yadisk' && typeof ydScreen === 'function') ydScreen(); // sync.js
   if (act === 'vk' && typeof vkScreen === 'function') vkScreen(); // sync.js + vk.js (0.22.0)
+  if (act === 'garage') location.href = 'garage/';   // 0.28.0
   if (act === 'importw') importInstruction();
   if (act === 'codes') goPath(state.path.filter(p => p.type === 'brand' || p.type === 'model').concat({ type: 'codes' }));
   if (act === 'about') toast(APP.name + ' v' + APP_VERSION + ' · марок: ' + DB.brands.length + ' · общих работ: ' + DB.templates.length);
