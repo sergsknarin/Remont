@@ -12,7 +12,7 @@ const YD_CLIENT = 'd1fa202c088a4900a9f5b356a5e0c8f1'; // приложение «
 const YD_OLD = 'cf8f5ded89f24b56b2b12d3f4c1ebe90';   // прежнее приложение «Ремонт» (только API) - вход на сайт через него не работает
 const ydCid = () => { const c = LS.get('ydClient', ''); return c && c !== YD_OLD ? c : YD_CLIENT; };
 let ydBusy = false, ydTimer = 0, ydAgain = false;
-function ydMark() { LS.set('ydDirty', Date.now()); if (ydTok()) { clearTimeout(ydTimer); ydTimer = setTimeout(() => ydSync(), 5000); } }  // из save()
+function ydMark() { LS.set('ydDirty', Date.now()); if (ydTok() || vkS()) { clearTimeout(ydTimer); ydTimer = setTimeout(() => ydSync(), 5000); } }  // из save()
 function ydState(t, cls) { const el = document.getElementById('ydState'); if (el) { el.textContent = t; el.className = 'yd ' + (cls || ''); } }
 
 async function ydApi(path, opt = {}) {
@@ -20,11 +20,11 @@ async function ydApi(path, opt = {}) {
   if (r.status === 401) { LS.set('ydToken', ''); throw new Error('Вход в Яндекс истёк — подключите Диск заново (⋮ → Яндекс.Диск)'); }
   return r;
 }
-async function ydMeta(p) { const r = await ydApi('/resources?path=' + encodeURIComponent(p) + '&fields=modified,md5,size'); return r.status === 404 ? null : r.ok ? r.json() : Promise.reject(new Error('Диск: ' + r.status)); }
-async function ydGet(p) { const r = await ydApi('/resources/download?path=' + encodeURIComponent(p)); if (!r.ok) throw new Error('Диск: скачивание ' + r.status); const { href } = await r.json(); const f = await fetch(href); if (!f.ok) throw new Error('Диск: файл ' + f.status); return f; }
-async function ydPut(p, body) { const r = await ydApi('/resources/upload?overwrite=true&path=' + encodeURIComponent(p)); if (!r.ok) throw new Error('Диск: загрузка ' + r.status); const { href } = await r.json(); const u = await fetch(href, { method: 'PUT', body }); if (!u.ok && u.status !== 201 && u.status !== 202) throw new Error('Диск: запись ' + u.status); }
-async function ydList(p) { const r = await ydApi('/resources?limit=100000&fields=_embedded.items.name&path=' + encodeURIComponent(p)); if (r.status === 404) return null; if (!r.ok) throw new Error('Диск: список ' + r.status); return ((await r.json())._embedded || { items: [] }).items.map(x => x.name); }
-async function ydMkdir(p) { await ydApi('/resources?path=' + encodeURIComponent(p), { method: 'PUT' }); }
+async function ydMeta(p) { if (vkProxy()) return vkMeta(p); const r = await ydApi('/resources?path=' + encodeURIComponent(p) + '&fields=modified,md5,size'); return r.status === 404 ? null : r.ok ? r.json() : Promise.reject(new Error('Диск: ' + r.status)); }
+async function ydGet(p) { if (vkProxy()) return vkGet(p); const r = await ydApi('/resources/download?path=' + encodeURIComponent(p)); if (!r.ok) throw new Error('Диск: скачивание ' + r.status); const { href } = await r.json(); const f = await fetch(href); if (!f.ok) throw new Error('Диск: файл ' + f.status); return f; }
+async function ydPut(p, body) { if (vkProxy()) return vkPut(p, body); const r = await ydApi('/resources/upload?overwrite=true&path=' + encodeURIComponent(p)); if (!r.ok) throw new Error('Диск: загрузка ' + r.status); const { href } = await r.json(); const u = await fetch(href, { method: 'PUT', body }); if (!u.ok && u.status !== 201 && u.status !== 202) throw new Error('Диск: запись ' + u.status); }
+async function ydList(p) { if (vkProxy()) return vkList(p); const r = await ydApi('/resources?limit=100000&fields=_embedded.items.name&path=' + encodeURIComponent(p)); if (r.status === 404) return null; if (!r.ok) throw new Error('Диск: список ' + r.status); return ((await r.json())._embedded || { items: [] }).items.map(x => x.name); }
+async function ydMkdir(p) { if (vkProxy()) return vkMkdir(p); await ydApi('/resources?path=' + encodeURIComponent(p), { method: 'PUT' }); }
 
 // Что отправляем: всё, кроме документов техдока (официальные источники)
 function ydOut(db) {
@@ -50,8 +50,9 @@ function ydMerge(local, remote) {
 const photoIds = db => new Set(db.templates.concat(db.items, db.codes || []).flatMap(w => (w.photos || []).concat((w.sols || []).flatMap(s => s.photos || []))).map(p => p.id));
 
 async function ydSync(manual) {
-  if (!ydTok()) return; if (ydBusy) { ydAgain = true; return; } if (!navigator.onLine) { ydState('☁ нет сети', 'warn'); return; }
+  if (!ydTok() && !vkS()) return; if (ydBusy) { ydAgain = true; return; } if (!navigator.onLine) { ydState('☁ нет сети', 'warn'); return; }
   ydBusy = true; ydState('☁ …'); const started = Date.now();
+  if (!ydTok() && vkRole() === 'friend') { await friendSync(manual, started); ydBusy = false; if (ydAgain) { ydAgain = false; setTimeout(() => ydSync(), 1500); } return; }
   if (!LS.get('ydJetour1', false)) { LS.set('ydDirty', Date.now()); LS.set('ydJetour1', true); }   // 0.17.3: один раз - отправить карточки ТО Jetour, что раньше не уходили
   try {
     const meta = await ydMeta('app:/db.json');
@@ -98,6 +99,41 @@ async function ydSync(manual) {
   if (ydAgain) { ydAgain = false; setTimeout(() => ydSync(), 1500); }
 }
 
+// 0.22.0: друг (вход через ВК) - через функцию, видит без скрытого, отправляет только своё
+async function friendSync(manual, started) {
+  try {
+    const { db, pushed } = await vkFriendSync(DB, { dirty: !!LS.get('ydDirty', false) });
+    if (!validDB(db)) throw new Error('функция вернула не базу справочника');
+    const docs = DB.docsUser; DB = db; DB.docsUser = docs; await Store.set('db', DB); render();
+    let down = 0, up = 0; const me = (vkS() || {}).vk;
+    const sent = new Set(LS.get('vkUp', []));
+    for (const w of ['templates', 'items', 'codes'].flatMap(k => DB[k] || []))
+      for (const p of (w.photos || []).concat((w.sols || []).flatMap(s => s.photos || []))) {
+        const local = await Store.get(p.id, 'photos');
+        if (!local) { try { await Store.set(p.id, await vkPhotoGet(p.id), 'photos'); down++; } catch (e) { } }
+        else if (String(w.vk) === String(me) && !sent.has(p.id)) { await vkPhotoPut(p.id, local); sent.add(p.id); up++; }
+      }
+    LS.set('vkUp', [...sent]);
+    if ((LS.get('ydDirty', 0) || 0) <= started) LS.set('ydDirty', 0); else ydAgain = true;
+    LS.set('ydLast', Date.now()); ydState('☁ ' + new Date().toTimeString().slice(0, 5), 'ok');
+    if (manual || pushed || up || down) toast('Синхронизировано через ВК' + (pushed ? ', отправлено: ' + pushed : '') + (up ? ', фото отправлено ' + up : '') + (down ? ', фото получено ' + down : ''));
+  } catch (e) { ydState('☁ ⚠', 'err'); if (manual) toast(e.message || 'Ошибка синхронизации'); }
+}
+// 0.22.0: экран «Вход через ВК» (⋮ → Вход через ВК)
+async function vkScreen() {
+  const s = vkS(), d = vkLS.get('vkDenied', null);
+  if (!VK_ON()) return toast('Вход через ВК ещё не настроен');
+  if (s) {
+    const k = await ask(`Вы вошли через ВК: ${s.name} (id ${s.vk}).\nРоль: ${s.role === 'owner' ? 'владелец - видно всё' : 'друг - видно справочник без скрытого; правите только своё'}.`,
+      [{ k: 'sync', t: 'Синхронизировать сейчас', cls: 'pri' }, { k: 'out', t: 'Выйти', cls: 'danger' }, { k: null, t: 'Закрыть' }]);
+    if (k === 'sync') return ydSync(true);
+    if (k === 'out') { vkLogout(); ydState(''); return toast('Вы вышли. Данные на этом устройстве остались.'); }
+    return;
+  }
+  const k = await ask('Войти через ВКонтакте?' + (d ? `\n\nПрошлая попытка: вашего ВК (id ${d.vk}) нет в списке доступа - перешлите этот номер владельцу.` : '\nВладелец увидит всё, друзья - справочник без скрытого.'),
+    [{ k: 'go', t: 'Войти через ВК', cls: 'pri' }, { k: null, t: 'Отмена' }]);
+  if (k === 'go') try { await vkLogin(); } catch (e) { toast(e.message); }
+}
 // Экран настройки (⋮ → Яндекс.Диск)
 async function ydScreen() {
   const on = !!ydTok(), last = LS.get('ydLast', 0);
@@ -115,10 +151,11 @@ async function ydScreen() {
 }
 // Запуск: принять токен после входа, синхронизироваться, повторять при появлении сети и раз в 5 минут
 function ydInit() {
+  if (typeof vkCallback === 'function') vkCallback(toast).then(x => { if (x && vkS() && !ydTok()) ydSync(); });
   const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('access_token')) { LS.set('ydToken', h.get('access_token')); history.replaceState(history.state, '', location.pathname); toast('Яндекс.Диск подключён'); }
   else if (h.get('error')) { history.replaceState(history.state, '', location.pathname); toast('Яндекс: вход не выполнен (' + h.get('error') + ')'); }
-  if (!ydTok()) return;
+  if (!ydTok() && !vkS()) return;
   ydSync();
   window.addEventListener('online', () => ydSync());
   setInterval(() => { if (document.visibilityState === 'visible') ydSync(); }, 300000);

@@ -84,6 +84,7 @@ a.site{color:inherit;text-decoration:none}
   <button data-t="find"><b>🔍</b>Поиск</button>
   <button data-t="add"><b>＋</b>Новая</button>
 </nav>
+<script src="../vk.js"></script>
 <script>
 "use strict";
 const API="https://cloud-api.yandex.net/v1/disk", DIR="app:/autoservice";
@@ -104,7 +105,19 @@ function head(t,s,back){T.textContent=t;SUB.textContent=s||"";BACK.hidden=!back;
 BACK.onclick=()=>{if(backTo)backTo()};
 
 // ---------- Яндекс.Диск ----------
+// 0.23.0: вход через ВК (владелец) - те же запросы к Диску, но через функцию-посредник
+const R=(st,o)=>({ok:st<300,status:st,json:async()=>o});
+async function vkRaw(path,opt){
+ const u=new URL("https://x"+path),p=u.searchParams.get("path"),P=u.pathname;
+ try{
+  if(P.endsWith("/download")){const j=await fnS({a:"yd",op:"download",path:p});return j.href?R(200,{href:j.href}):R(404,{})}
+  if(P.endsWith("/upload")){const j=await fnS({a:"yd",op:"upload",path:p});return j.status===409?R(409,{}):R(200,{href:j.href})}
+  if(opt.method==="PUT"){const j=await fnS({a:"yd",op:"mkdir",path:p});return R(j.status||201,{})}
+  const j=await fnS({a:"yd",op:"meta",path:p});return j.meta?R(200,j.meta):R(404,{})
+ }catch(e){if(!vkS())throw new Error("login");throw e}
+}
 async function yd(path,opt={}){
+ if(vkProxy())return vkRaw(path,opt);
  const r=await fetch(API+path,{...opt,headers:{Authorization:"OAuth "+tok(),...(opt.headers||{})}});
  if(r.status===401){LSs("rr_ydToken","");throw new Error("login")}
  return r;
@@ -126,10 +139,12 @@ function loginScreen(msg){
  const back=new URL("../",location.href).href;
  M.innerHTML=`<p class="empty">${esc(msg||"Нужно один раз войти в Яндекс.Диск.")}<br><br>Вход общий со «Справочником ремонта»: после входа откроется справочник - вернитесь сюда.</p>
   <a class="btn" href="https://oauth.yandex.ru/authorize?response_type=token&force_confirm=yes&client_id=${encodeURIComponent(cid)}&redirect_uri=${encodeURIComponent(back)}">Войти в Яндекс</a>
-  <button class="btn sec" onclick="location.reload()">Я уже вошёл - обновить</button>`;
+  <button class="btn sec" onclick="location.reload()">Я уже вошёл - обновить</button>${VK_ON()?`<button class="btn sec" id="vkGo">Войти через ВК</button>`:""}`;
+ const vg=document.getElementById("vkGo");if(vg)vg.onclick=()=>vkLogin().catch(e=>alert(e.message));
 }
 async function load(force){
- if(!tok()){loginScreen();return false}
+ if(!tok()&&vkRole()==="friend"){NAV.hidden=true;head("Автосервис","");M.innerHTML=`<p class="empty">Вы вошли через ВК как друг (${esc((vkS()||{}).name||"")}).<br>Автосервис доступен только владельцу - здесь данные клиентов.<br><br><a href="../">Открыть Справочник ремонта</a></p>`;return false}
+ if(!tok()&&!vkProxy()){loginScreen(vkLS.get("vkS",null)===null&&localStorage.getItem("rr_vkDenied")?"Вашего ВК нет в списке доступа.":"");return false}
  const cached=LSg("as_data",null);
  if(cached&&!D){D=cached;showSync()}
  if(!force&&D&&Date.now()-(LSg("as_loaded",0))<60000)return true;

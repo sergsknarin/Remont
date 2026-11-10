@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.21.0';
+const APP_VERSION = '0.23.0';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -167,6 +167,7 @@ function rowsHtml(items) {
   return '<div class="list">' + items.map(i =>
     `<div class="row" data-i="${i.k}"><div class="t">${i.t}${i.s ? `<div class="s">${i.s}</div>` : ''}</div>` +
     (i.n != null ? `<span class="n">${i.n}</span>` : '') +
+    (i.pv != null && state.edit ? `<button class="mini" data-pv="${i.k}" aria-label="${i.pv ? 'Скрыто от друзей - показать' : 'Видно друзьям - скрыть'}" title="${i.pv ? 'Скрыто от друзей - нажмите, чтобы показать' : 'Видно друзьям - нажмите, чтобы скрыть'}">${i.pv ? '🔒' : '👁'}</button>` : '') +
     (i.ed && state.edit ? `<button class="mini" data-e="${i.k}" aria-label="Переименовать">✎</button><button class="mini del" data-d="${i.k}" aria-label="Удалить">✕</button>` : '') +
     `<span class="ch">›</span></div>`).join('') + '</div>';
 }
@@ -175,6 +176,7 @@ function bindRows(v, h, he = {}, hd = {}) {
     const b = e.target.closest('button');
     if (b && b.dataset.e) return he[b.dataset.e]();
     if (b && b.dataset.d) return hd[b.dataset.d]();
+    if (b && b.dataset.pv) return togglePrivate(b.dataset.pv);   // 0.23.0
     h[r.dataset.i] && h[r.dataset.i]();
   });
 }
@@ -188,7 +190,7 @@ function renderBrands(v) {
     h[b.id] = () => go({ type: 'brand', id: b.id });
     he[b.id] = () => renameBrand(b);
     hd[b.id] = () => deleteBrand(b);
-    return { k: b.id, t: esc(b.name), n: b.models.length ? b.models.length + ' мод.' : null, ed: true };
+    return { k: b.id, t: esc(b.name) + privMark(b), n: b.models.length ? b.models.length + ' мод.' : null, ed: true, pv: isOwner() ? !!b.private : null };
   });
   v.innerHTML = quickHtml(h) + '<h2>Марки</h2>' + rowsHtml(items) + addBtns([['brand', 'Марка']]) + `<p class="ver">${esc(APP.name)} · версия ${APP_VERSION}</p>`;
   bindRows(v, h, he, hd); bindAdds(v, { brand: addBrand });
@@ -200,7 +202,7 @@ function renderModels(v, b) {
     h[m.id] = () => go({ type: 'model', id: m.id });
     he[m.id] = () => renameModel(b, m);
     hd[m.id] = () => deleteModel(b, m);
-    return { k: m.id, t: esc(m.name), ed: true };
+    return { k: m.id, t: esc(m.name) + privMark(m), ed: true, pv: isOwner() ? !!m.private : null };
   }));
   v.innerHTML = docsRow(ctx(), h) + '<h2>Модели</h2>' + rowsHtml(items) + addBtns([['model', 'Модель']]);
   bindRows(v, h, he, hd); bindAdds(v, { model: () => addModel(b) });
@@ -348,6 +350,17 @@ function paramState(p, v) {
 }
 const normText = p => p.min != null && p.max != null ? `${p.min}…${p.max}` : p.min != null ? `не меньше ${p.min}` : p.max != null ? `не больше ${p.max}` : '—';
 
+// 0.23.0: «Скрыть от друзей» (поле private; функция не отдаёт скрытое друзьям). Только владельцу.
+const privMark = x => isOwner() && x && x.private ? ' <span class="muted" title="Скрыто от друзей">🔒</span>' : '';
+function privRec(id) {
+  for (const b of DB.brands) { if (b.id === id) return b; const m = (b.models || []).find(x => x.id === id); if (m) return m; }
+  return DB.items.find(x => x.id === id) || DB.templates.find(x => x.id === id) || null;
+}
+async function togglePrivate(id) {
+  const r = privRec(id); if (!r) return toast('Запись не найдена в базе');
+  if (r.private) delete r.private; else r.private = true;
+  await save(); render(); toast(r.private ? '🔒 Скрыто от друзей: ' + r.name : '👁 Видно друзьям: ' + r.name);
+}
 function renderWork(v, w, c) {
   if (!w) { v.innerHTML = '<div class="empty">Работа не найдена</div>'; return; }
   const src = w.src === 'tpl' ? 'общая работа (у всех марок)' : w.overrides ? 'изменена для этой марки' : w.model ? 'только для этой модели' : 'только для этой марки';
@@ -360,6 +373,7 @@ function renderWork(v, w, c) {
   v.innerHTML = `<div class="card"><h1>${esc(w.name)}</h1>
     <div class="meta">${esc(c.brand.name)}${c.model ? ' ' + esc(c.model.name) : ''}${w.engine && c.model ? ' · ⚙ ' + esc(((c.model.engines || []).find(e => e.id === w.engine) || {}).name || '') : ''} · ${esc(w.group)}${w.hours != null ? ' · ' + w.hours + ' н/ч' : ''}${w.price != null ? ' · ' + w.price + ' ₽' : ''}</div>
     ${w.note ? `<div class="note">${esc(w.note)}</div>` : ''}
+    ${isOwner() && privRec(w.id) ? `<button class="mini" id="wPriv">${privRec(w.id).private ? '🔒 Скрыто от друзей - показать' : '👁 Видно друзьям - скрыть'}</button>` : ''}
     <div class="sec"><h2>Инструкция</h2>${ed ? '<button class="mini" id="eInstr" aria-label="Изменить инструкцию">✎</button>' : ''}</div>
     <div class="instr">${w.instr ? esc(w.instr).replace(/\n/g, '<br>') : '<span class="muted">Нет. Нажмите «Править», чтобы добавить: куда войти, что сделать.</span>'}</div>
     <div class="sec"><h2>Пункты ${all.length ? done + ' / ' + all.length : ''}</h2></div>
@@ -391,6 +405,7 @@ function renderWork(v, w, c) {
   bindPhotos(v, w, c, mut);
   if (typeof bindVideos === 'function') bindVideos(v, w, mut);
   bindWorkCodes(v, w, c, mut);
+  { const pb = v.querySelector('#wPriv'); if (pb) pb.onclick = () => togglePrivate(w.id); }   // 0.23.0
   v.querySelectorAll('[data-sph]').forEach(b => b.onclick = () => viewPhoto(w, (w.photos || []).findIndex(p => p.id === b.dataset.sph), mut));
   if (!ed) return;
   $('#eInstr').onclick = async () => { const r = await formBox('Инструкция', [{ k: 'instr', label: 'Куда войти, что сделать, на что смотреть', type: 'area' }], w); if (r) mut(o => o.instr = r.instr); };
@@ -555,6 +570,7 @@ menu.onclick = async e => {
   }
   if (act === 'memory') memoryScreen();
   if (act === 'yadisk' && typeof ydScreen === 'function') ydScreen(); // sync.js
+  if (act === 'vk' && typeof vkScreen === 'function') vkScreen(); // sync.js + vk.js (0.22.0)
   if (act === 'importw') importInstruction();
   if (act === 'codes') goPath(state.path.filter(p => p.type === 'brand' || p.type === 'model').concat({ type: 'codes' }));
   if (act === 'about') toast(APP.name + ' v' + APP_VERSION + ' · марок: ' + DB.brands.length + ' · общих работ: ' + DB.templates.length);
@@ -620,6 +636,7 @@ function homeScreenHint() {
   render();
   homeScreenHint();
   if (typeof ydInit === 'function') ydInit(); // sync.js — только в общем справочнике
+  { const mv = document.getElementById('mVk'); if (mv && typeof VK_ON === 'function' && VK_ON()) mv.hidden = false; }   // 0.22.0
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     // новая версия скачана → перезагрузиться один раз, чтобы сразу показать её (0.16.1)
     const had = !!navigator.serviceWorker.controller; let reloaded = false;
