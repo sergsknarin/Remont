@@ -358,7 +358,7 @@ function privRec(id) {
 }
 async function togglePrivate(id) {
   const r = privRec(id); if (!r) return toast('Запись не найдена в базе');
-  if (r.private) delete r.private; else r.private = true;
+  r.private = !r.private;   // false, а не удаление поля: иначе при слиянии марок скрытие вернётся с Диска
   await save(); render(); toast(r.private ? '🔒 Скрыто от друзей: ' + r.name : '👁 Видно друзьям: ' + r.name);
 }
 function renderWork(v, w, c) {
