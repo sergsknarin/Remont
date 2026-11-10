@@ -259,7 +259,10 @@ function car(id,back){
  if(!vis.length)h+=`<p class="empty">Визитов ещё не было</p>`;
  else{h+=`<div class="blk">`;for(const v of vis){const det=[v.works,v.parts].filter(Boolean).join(" · ");h+=`<div class="row tap" data-id="${v.id}"><div class="m"><div>${esc(v.reason||"Визит")}</div>${det?`<div class="det">${esc(det)}</div>`:""}</div><span class="r">${dmy(v.start)}<br>${v.km?v.km.toLocaleString("ru")+" км<br>":""}${Math.round(+v.sum||0).toLocaleString("ru")} ₽</span></div>`}h+=`</div>`}
  h+=`<button class="btn" id="cAppt">＋ Записать на сервис</button><button class="btn sec" id="cRec">Добавить рекомендацию</button><button class="btn sec" id="cRef">📖 Справочник ремонта</button><div id="recBox"></div>${c.client?`<button class="btn sec" id="cMore">＋ Ещё авто этому клиенту</button>`:""}`;
+ {const pc=pend.filter(p=>p.type==="carphoto"&&String(p.car_id)===String(c.id)).length,ap=D.appts.filter(a=>String(a.car)===String(c.id)).reduce((s,a)=>s+(a.nfiles||0),0);   // 0.27.0
+  h+=`<div class="bh">Фото авто: в записях на ПК ${ap}${pc?", в базу знаний с телефона "+pc:""}</div><input type="file" id="cPf" accept="image/*" multiple hidden><button class="btn sec" id="cPb">📷 Фото авто</button><div id="cPc"></div><div class="err" id="cPs" style="color:var(--fg)"></div>`}
  M.innerHTML=h;
+ carPhotoBtn(c,back);
  M.querySelectorAll(".row.tap[data-id]").forEach(r=>r.onclick=()=>appt(r.dataset.id,()=>openCar(c.id,back)));
  cAppt.onclick=()=>{sel={car_id:c.id,client_id:c.client,title:carTitle(c)+(cl.name?" · "+cl.name:"")};go("add")};
  if(window.cMore)cMore.onclick=()=>newCar(c,cl,back);
@@ -303,6 +306,22 @@ function appt(id,back){
    try{await send({type:"note",text:aTx.value.trim(),...ref()});appt(akey(a),back)}catch(e){aNe.textContent="Не сохранилось: "+e.message;aNs.disabled=false}}};
  aW.onclick=()=>{itemQ="";itemPick("work",a,back)};aP.onclick=()=>{itemQ="";itemPick("part",a,back)};
  if(c)aC.onclick=()=>openCar(c.id,()=>appt(akey(a),back));
+}
+// 0.27.0: фото к машине - к записи сегодня (если есть) или в «Базу знаний» авто на ПК
+function carPhotoBtn(c,back){
+ const today=iso(new Date()),ta=D.appts.filter(a=>String(a.car)===String(c.id)&&String(a.start).slice(0,10)===today).pop()||null;
+ cPb.onclick=()=>cPf.click();
+ cPf.onchange=()=>{const fs=[...cPf.files];if(!fs.length)return;
+  cPc.innerHTML=`<div class="blk frm"><label for="cPn">Подпись (необязательно)</label><input type="text" id="cPn" placeholder="скол на капоте, царапина левая дверь"></div>
+   ${ta?`<button class="btn" id="cTA">К записи сегодня (${fs.length} фото)</button>`:""}<button class="btn ${ta?"sec":""}" id="cKB">В базу знаний авто (${fs.length} фото)</button>
+   ${ta?"":`<p class="empty">Записи на сегодня у этой машины нет - фото сохранятся у самой машины.</p>`}`;
+  const go2=async toAppt=>{const note=window.cPn?cPn.value.trim():"";cPc.innerHTML="";let n=0;
+   for(const f of fs){cPs.textContent="Фото "+(n+1)+" из "+fs.length+"…";
+    try{const blob=await shrink(f);await send(toAppt?{type:"photo",appt_id:ta.id,akey:String(ta.id)}:{type:"carphoto",car_id:c.id,note},blob);n++}
+    catch(e){cPs.textContent="Фото "+(n+1)+": "+e.message;return}}
+   if(toAppt&&note)await send({type:"note",text:note,appt_id:ta.id,akey:String(ta.id)});
+   car(c.id,back);cPs.textContent="✓ Фото: "+n+(toAppt?" - в запись сегодня. ":" - в базу знаний авто. ")+qNote()};
+  if(window.cTA)cTA.onclick=()=>go2(true);cKB.onclick=()=>go2(false)};
 }
 function shrink(file,max=1600,q=0.82){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();   // 0.25.0
  im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
@@ -438,9 +457,9 @@ const IDB=()=>new Promise((ok,no)=>{const r=indexedDB.open("as_out",1);r.onupgra
 async function idb(op,k,v){const db=await IDB();return new Promise((ok,no)=>{const t=db.transaction("f",op==="get"?"readonly":"readwrite"),st=t.objectStore("f");
  const r=op==="get"?st.get(k):op==="put"?st.put(v,k):st.delete(k);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
 async function sendOne(m){
- if(m.type==="photo"){const b=await idb("get",m.img);if(b)await ydPut(DIR+"/inbox/photos/"+m.img,b);else if(m.q==="img")throw new Error("фото потерялось в памяти телефона")}
+ if(m.img){const b=await idb("get",m.img);if(b)await ydPut(DIR+"/inbox/photos/"+m.img,b)}   // фото к записи и к машине (0.27.0)
  const {q,err,...out}=m;await ydPut(DIR+"/inbox/"+m.file,JSON.stringify(out));
- if(m.type==="photo")idb("del",m.img).catch(()=>{});
+ if(m.img)idb("del",m.img).catch(()=>{});
 }
 async function flush(){
  if(flushing||!navigator.onLine||(!tok()&&!vkProxy()))return;flushing=true;let n=0;
