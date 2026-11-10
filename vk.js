@@ -3,7 +3,7 @@
    Друг: видит справочник без скрытого (private), добавляет своё, правит/удаляет только своё.
    Пока VK_APP или FN_URL пустые - кнопки входа через ВК нет, всё работает как раньше. */
 'use strict';
-const VK_APP = '';                       // ID приложения VK ID (не секрет)
+const VK_APP = '54887685';                       // ID приложения VK ID (не секрет)
 const FN_URL = '';                       // «Ссылка для вызова» функции https://functions.yandexcloud.net/...
 const VK_ON = () => !!(VK_APP && FN_URL);
 const VK_REDIRECT = () => location.origin + location.pathname.replace(/autoservice\/.*$/, '').replace(/[^/]*$/, '');   // .../Remont/
