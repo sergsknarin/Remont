@@ -25,6 +25,33 @@ async function fnCall(body) {
   if (!j.ok && !j.denied) throw new Error(j.error || ('Ошибка функции, код ' + r.status));
   return j;
 }
+// 0.34.0: обход - если телефон не достаёт до серверов загрузки Яндекса (downloader/uploader), файл идёт через функцию (нужна функция 1.4.0)
+const relayOn = () => { try { return sessionStorage.getItem('rr_relay') === '1'; } catch (e) { return false; } };
+async function relayCall(body, what) {
+  let r, j;
+  try { r = await fetch(FN_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ a: 'relay', ...body }) }); j = await r.json(); }
+  catch (e) { throw new Error('Нет связи ни с Яндекс.Диском, ни с функцией (' + what + '): ' + e.message + '. Проверьте интернет.'); }
+  if (!j.ok) throw new Error(/Неизвестное|Войдите|вход/i.test(j.error || '') ? 'Телефон не достаёт до сервера файлов Яндекса, а обход не включён: обновите функцию в Облаке до 1.4.0 (' + what + ')' : (j.error || 'Обход через функцию: код ' + r.status));
+  return j;
+}
+async function ydFileGet(href, what) {
+  if (!relayOn() || !FN_URL) try { return await fetch(href); } catch (e) {
+    if (!FN_URL) { let h = ''; try { h = new URL(href).host; } catch (x) { } throw new Error('Нет связи: ' + what + ' (' + h + ') - ' + e.message); }
+    try { sessionStorage.setItem('rr_relay', '1'); } catch (x) { }
+  }
+  const j = await relayCall({ op: 'get', href }, what);
+  return new Response(Uint8Array.from(atob(j.b64), c => c.charCodeAt(0)), { status: j.status, headers: { 'Content-Type': j.type || 'application/octet-stream' } });
+}
+async function ydFilePut(href, body, what) {
+  if (!relayOn() || !FN_URL) try { return await fetch(href, { method: 'PUT', body }); } catch (e) {
+    if (!FN_URL) { let h = ''; try { h = new URL(href).host; } catch (x) { } throw new Error('Нет связи: ' + what + ' (' + h + ') - ' + e.message); }
+    try { sessionStorage.setItem('rr_relay', '1'); } catch (x) { }
+  }
+  const u8 = new Uint8Array(await new Blob([body]).arrayBuffer()); let bin = '';
+  for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  const j = await relayCall({ op: 'put', href, b64: btoa(bin) }, what);
+  return { ok: j.status >= 200 && j.status < 300, status: j.status };
+}
 const fnS = b => fnCall({ ...b, s: (vkS() || {}).s });
 
 // ---------- вход ----------
@@ -93,8 +120,8 @@ function vkLogout() { vkLS.set('vkS', null); vkLS.set('vkMine', null); vkLS.set(
 
 // ---------- владелец: Диск через функцию ----------
 async function vkMeta(p) { return (await fnS({ a: 'yd', op: 'meta', path: p })).meta; }
-async function vkGet(p) { const { href } = await fnS({ a: 'yd', op: 'download', path: p }); if (!href) throw new Error('Диск: нет файла ' + p); const f = await fetch(href); if (!f.ok) throw new Error('Диск: файл ' + f.status); return f; }
-async function vkPut(p, body) { const { href } = await fnS({ a: 'yd', op: 'upload', path: p }); const u = await fetch(href, { method: 'PUT', body }); if (!u.ok && u.status !== 201 && u.status !== 202) throw new Error('Диск: запись ' + u.status); }
+async function vkGet(p) { const { href } = await fnS({ a: 'yd', op: 'download', path: p }); if (!href) throw new Error('Диск: нет файла ' + p); const f = await ydFileGet(href, 'скачивание ' + p); if (!f.ok) throw new Error('Диск: файл ' + f.status); return f; }
+async function vkPut(p, body) { const { href } = await fnS({ a: 'yd', op: 'upload', path: p }); const u = await ydFilePut(href, body, 'отправка ' + p); if (!u.ok && u.status !== 201 && u.status !== 202) throw new Error('Диск: запись ' + u.status); }
 async function vkList(p) { return (await fnS({ a: 'yd', op: 'list', path: p })).items; }
 async function vkMkdir(p) { await fnS({ a: 'yd', op: 'mkdir', path: p }); }
 
@@ -130,5 +157,5 @@ async function vkFriendSync(DBref, opt) {
   vkLS.set('vkMine', vkMineIds(j.db, me));
   return { db: j.db, pushed };
 }
-async function vkPhotoGet(id) { const { href } = await fnS({ a: 'photo_get', id }); const f = await fetch(href); if (!f.ok) throw new Error('Фото ' + f.status); return f.blob(); }
-async function vkPhotoPut(id, blob) { const j = await fnS({ a: 'photo_put', id }); if (j.href) { const u = await fetch(j.href, { method: 'PUT', body: blob }); if (!u.ok && u.status !== 201 && u.status !== 202) throw new Error('Фото: запись ' + u.status); } }
+async function vkPhotoGet(id) { const { href } = await fnS({ a: 'photo_get', id }); const f = await ydFileGet(href, 'фото'); if (!f.ok) throw new Error('Фото ' + f.status); return f.blob(); }
+async function vkPhotoPut(id, blob) { const j = await fnS({ a: 'photo_put', id }); if (j.href) { const u = await ydFilePut(j.href, blob, 'отправка фото'); if (!u.ok && u.status !== 201 && u.status !== 202) throw new Error('Фото: запись ' + u.status); } }

@@ -126,14 +126,15 @@ async function yd(path,opt={}){
 }
 async function ydGetJson(p){const r=await yd("/resources/download?path="+encodeURIComponent(p));if(r.status===404)return null;if(!r.ok)throw new Error("Диск "+r.status);const{href}=await r.json();let f,log=[];const host=(()=>{try{return new URL(href).hostname}catch(e){return "?"}})();
  for(const [n,u,o] of [["1",href,{}],["2",href.replace(/([?&])disposition=[^&]*&?/,"$1"),{}],["3",href,{cache:"no-store",credentials:"omit",referrerPolicy:"no-referrer"}]]){
-  try{f=await fetch(u,o);break}catch(e){log.push(n+":"+e.message)}}
+  if(typeof relayOn==="function"&&relayOn())break;try{f=await fetch(u,o);break}catch(e){log.push(n+":"+e.message)}}
+ if(!f&&typeof ydFileGet==="function"&&FN_URL){try{sessionStorage.setItem("rr_relay","1")}catch(e){}f=await ydFileGet(href,"скачивание "+p.split("/").pop())}   // 0.34.0: обход через функцию
  if(!f){let m="";try{const r=await fetch(href,{redirect:"manual"});m=" переход:"+r.type+"/"+r.status}catch(e){m=" переход: "+e.message}
   throw new Error("Диск: скачивание файла с "+host+" ("+log.join("; ")+";"+m+")")}if(!f.ok)throw new Error("Диск: файл "+f.status);const t=await f.text();try{return JSON.parse(t.replace(/^\uFEFF/,""))}catch(e){throw new Error("файл "+p.split("/").pop()+" не читается ("+t.length+" байт): "+e.message)}}
 async function ydPut(p,text){
  let r=await yd("/resources/upload?overwrite=true&path="+encodeURIComponent(p));
  if(r.status===409){await yd("/resources?path="+encodeURIComponent(DIR),{method:"PUT"});await yd("/resources?path="+encodeURIComponent(DIR+"/inbox"),{method:"PUT"});await yd("/resources?path="+encodeURIComponent(DIR+"/inbox/photos"),{method:"PUT"});r=await yd("/resources/upload?overwrite=true&path="+encodeURIComponent(p))}
  if(!r.ok)throw new Error("Диск: загрузка "+r.status);const{href}=await r.json();
- const u=await fetch(href,{method:"PUT",body:text instanceof Blob?text:new Blob([text],{type:"application/json"})});if(!u.ok&&u.status!==201&&u.status!==202)throw new Error("Диск: запись "+u.status);
+ const u=await ydFilePut(href,text instanceof Blob?text:new Blob([text],{type:"application/json"}),"отправка "+p.split("/").pop());if(!u.ok&&u.status!==201&&u.status!==202)throw new Error("Диск: запись "+u.status);
 }
 function loginScreen(msg){
  NAV.hidden=true;document.getElementById("sync").hidden=true;head("Автосервис","через Яндекс.Диск");
