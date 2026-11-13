@@ -15,14 +15,19 @@ let ydBusy = false, ydTimer = 0, ydAgain = false;
 function ydMark() { LS.set('ydDirty', Date.now()); if (ydTok() || vkS()) { clearTimeout(ydTimer); ydTimer = setTimeout(() => ydSync(), 5000); } }  // из save()
 function ydState(t, cls) { const el = document.getElementById('ydState'); if (el) { el.textContent = t; el.className = 'yd ' + (cls || ''); } }
 
+// 0.33.1: понятная причина вместо «Failed to fetch» - что именно и с каким адресом не связалось
+async function ydFetch(url, opt, what) {
+  try { return await fetch(url, opt); }
+  catch (e) { let h = ''; try { h = new URL(url).host; } catch (x) { } throw new Error('Нет связи: ' + what + ' (' + h + ') - ' + e.message + (navigator.onLine ? '' : '. Телефон без интернета')); }
+}
 async function ydApi(path, opt = {}) {
-  const r = await fetch(YD + path, { ...opt, headers: { Authorization: 'OAuth ' + ydTok(), ...(opt.headers || {}) } });
+  const r = await ydFetch(YD + path, { ...opt, headers: { Authorization: 'OAuth ' + ydTok(), ...(opt.headers || {}) } }, 'запрос к Яндекс.Диску ' + path.split('?')[0]);
   if (r.status === 401) { LS.set('ydToken', ''); throw new Error('Вход в Яндекс истёк — подключите Диск заново (⋮ → Яндекс.Диск)'); }
   return r;
 }
 async function ydMeta(p) { if (vkProxy()) return vkMeta(p); const r = await ydApi('/resources?path=' + encodeURIComponent(p) + '&fields=modified,md5,size'); return r.status === 404 ? null : r.ok ? r.json() : Promise.reject(new Error('Диск: ' + r.status)); }
-async function ydGet(p) { if (vkProxy()) return vkGet(p); const r = await ydApi('/resources/download?path=' + encodeURIComponent(p)); if (!r.ok) throw new Error('Диск: скачивание ' + r.status); const { href } = await r.json(); const f = await fetch(href); if (!f.ok) throw new Error('Диск: файл ' + f.status); return f; }
-async function ydPut(p, body) { if (vkProxy()) return vkPut(p, body); const r = await ydApi('/resources/upload?overwrite=true&path=' + encodeURIComponent(p)); if (!r.ok) throw new Error('Диск: загрузка ' + r.status); const { href } = await r.json(); const u = await fetch(href, { method: 'PUT', body }); if (!u.ok && u.status !== 201 && u.status !== 202) throw new Error('Диск: запись ' + u.status); }
+async function ydGet(p) { if (vkProxy()) return vkGet(p); const r = await ydApi('/resources/download?path=' + encodeURIComponent(p)); if (!r.ok) throw new Error('Диск: скачивание ' + r.status); const { href } = await r.json(); const f = await ydFetch(href, undefined, 'скачивание файла ' + p); if (!f.ok) throw new Error('Диск: файл ' + f.status); return f; }
+async function ydPut(p, body) { if (vkProxy()) return vkPut(p, body); const r = await ydApi('/resources/upload?overwrite=true&path=' + encodeURIComponent(p)); if (!r.ok) throw new Error('Диск: загрузка ' + r.status); const { href } = await r.json(); const u = await ydFetch(href, { method: 'PUT', body }, 'отправка файла ' + p); if (!u.ok && u.status !== 201 && u.status !== 202) throw new Error('Диск: запись ' + u.status); }
 async function ydList(p) { if (vkProxy()) return vkList(p); const r = await ydApi('/resources?limit=100000&fields=_embedded.items.name&path=' + encodeURIComponent(p)); if (r.status === 404) return null; if (!r.ok) throw new Error('Диск: список ' + r.status); return ((await r.json())._embedded || { items: [] }).items.map(x => x.name); }
 async function ydMkdir(p) { if (vkProxy()) return vkMkdir(p); await ydApi('/resources?path=' + encodeURIComponent(p), { method: 'PUT' }); }
 
