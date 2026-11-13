@@ -98,6 +98,7 @@ const s=vkS(),k=vkLS.get("myk",""),own=isOwner();
 document.getElementById("who").textContent=s?((s.via==="link"?"Вы вошли по ссылке: ":"Вы вошли через ВК: ")+s.name+(s.role==="owner"?" (владелец)":"")):own?"Вход: Яндекс (владелец)":"";
 /* 0.33.0: вход друга по ссылке прямо отсюда (вставить ссылку или сам ключ) */
 if(!s&&!own){document.getElementById("lnk").style.display="";
+ document.getElementById("lnkIn").oninput=()=>{document.getElementById("lnkErr").textContent=""};
  document.getElementById("lnkGo").onclick=()=>{const t=document.getElementById("lnkIn").value.trim(),m=t.match(/[#?&]f=([A-Za-z0-9]{16,64})/)||t.match(/^([A-Za-z0-9]{16,64})$/);
   if(!m){document.getElementById("lnkErr").textContent=t?"Это не ссылка для входа. Она выглядит так: …/Remont/#f= и длинный код. Скопируйте её целиком из сообщения.":"Вставьте ссылку: долгое нажатие на поле → «Вставить».";return}
   location.href="./?f="+m[1]}}
