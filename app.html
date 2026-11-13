@@ -82,15 +82,25 @@ input[type=search]{width:100%;margin-top:10px;padding:10px 12px;border-radius:10
 <main id="M">
 <a class="tile" href="./"><b>📖</b><div class="m"><div>Справочник ремонта</div><div>работы, запчасти, фото, коды ошибок, ТО</div></div></a>
 <a class="tile" id="tMy" href="my/"><b>🚗</b><div class="m"><div>Моя машина</div><div>история обслуживания по ссылке мастерской</div></div></a>
-<a class="tile" href="garage/"><b>🔧</b><div class="m"><div>Мой гараж</div><div>для друзей: свои машины и работы мастерской (вход через ВК)</div></div></a>
+<a class="tile" href="garage/"><b>🔧</b><div class="m"><div>Мой гараж</div><div>для друзей: свои машины и работы мастерской</div></div></a>
 <a class="tile" id="tAs" href="autoservice/"><b>🛠</b><div class="m"><div>Автосервис</div><div>для мастера: записи, клиенты, авто</div></div></a>
+<div id="lnk" class="blk" style="display:none;padding:12px 14px">
+<div style="font-size:15px;font-weight:600">Войти по ссылке</div>
+<div style="font-size:13px;color:var(--mut);margin-top:2px">Скопируйте ссылку из сообщения владельца и вставьте сюда</div>
+<input id="lnkIn" type="search" placeholder="https://sergsknarin.github.io/Remont/#f=..." autocapitalize="off" autocomplete="off" style="background:var(--ph)">
+<button class="btn" id="lnkGo">Войти</button><div class="err" id="lnkErr"></div></div>
 <p class="note" style="font-size:12px;color:var(--mut);text-align:center;padding:16px 8px" id="ver"></p>
 </main>
 <script src="vk.js"></script>
 <script>
 /* 1.0 (сайт 0.30.0): стартовый экран приложения для Android (и любого браузера). Меняется без пересборки приложения. */
 const s=vkS(),k=vkLS.get("myk",""),own=isOwner();
-document.getElementById("who").textContent=s?("Вы вошли через ВК: "+s.name+(s.role==="owner"?" (владелец)":"")):own?"Вход: Яндекс (владелец)":"";
+document.getElementById("who").textContent=s?((s.via==="link"?"Вы вошли по ссылке: ":"Вы вошли через ВК: ")+s.name+(s.role==="owner"?" (владелец)":"")):own?"Вход: Яндекс (владелец)":"";
+/* 0.33.0: вход друга по ссылке прямо отсюда (вставить ссылку или сам ключ) */
+if(!s&&!own){document.getElementById("lnk").style.display="";
+ document.getElementById("lnkGo").onclick=()=>{const t=document.getElementById("lnkIn").value.trim(),m=t.match(/[#?&]f=([A-Za-z0-9]{16,64})/)||t.match(/^([A-Za-z0-9]{16,64})$/);
+  if(!m){document.getElementById("lnkErr").textContent=t?"Это не ссылка для входа. Она выглядит так: …/Remont/#f= и длинный код. Скопируйте её целиком из сообщения.":"Вставьте ссылку: долгое нажатие на поле → «Вставить».";return}
+  location.href="./?f="+m[1]}}
 if(!k)document.getElementById("tMy").querySelector(".m div+div").textContent="откройте ссылку из сообщения мастерской - запомнится здесь";
 if(s&&s.role==="friend")document.getElementById("tAs").classList.add("hid");
 document.getElementById("ver").textContent=/RemontApp/.test(navigator.userAgent)?"Приложение для Android · содержимое обновляется само":"Можно добавить на экран «Домой»";

@@ -59,8 +59,20 @@ async function vkCallback(say) {
 }
 // 0.32.0: вход друга по личной ссылке  .../Remont/#f=ключ  (ключ выдаёт владелец: Справочник → «Доступ друзьям» или сайт → ⋮ → «Друзья»)
 async function keyCallback(say) {
-  const h = new URLSearchParams(location.hash.slice(1)), k = h.get('f');
+  const h = new URLSearchParams(location.hash.slice(1)), q = new URLSearchParams(location.search);
+  const k = h.get('f') || q.get('f');   // ?f= - так ссылку передаёт Android-приложение (remont://vk?f=ключ)
   if (!k) return false;
+  // 0.33.0: Android, ссылка открылась в браузере - предложить открыть в приложении (там и запомнится вход)
+  if (/Android/i.test(navigator.userAgent) && !IN_APP && typeof ask === 'function') {
+    const c = await ask('Вход в справочник по личной ссылке. Где открыть?',
+      [{ k: 'app', t: 'Открыть в приложении', cls: 'pri' }, { k: 'web', t: 'Остаться в браузере' }, { k: 'get', t: 'Скачать приложение (если не установлено)' }]);
+    if (c === 'app') {   // приложения нет - браузер сам откроет страницу скачивания (browser_fallback_url)
+      location.href = 'intent://vk?f=' + encodeURIComponent(k) + '#Intent;scheme=remont;package=ru.sergsknarin.remont;S.browser_fallback_url=' + encodeURIComponent(APP_APK) + ';end';
+      say('Если приложение не открылось - обновите страницу и выберите «Остаться в браузере» или «Скачать приложение».');
+      return true;   // ссылку в адресе оставляем: можно вернуться и выбрать иначе
+    }
+    if (c === 'get') { say('После установки откройте ссылку из сообщения ещё раз → «Открыть в приложении».'); location.href = APP_APK; return true; }
+  }
   history.replaceState(history.state, '', location.pathname);   // ссылку убираем из адреса, чтобы не переслать дальше
   if (!FN_URL) { say('Вход по ссылке не настроен (FN_URL в vk.js)'); return true; }
   try {
@@ -72,6 +84,7 @@ async function keyCallback(say) {
   return true;
 }
 // ---------- владелец: список друзей (access.json) с телефона ----------
+const APP_APK = 'https://github.com/sergsknarin/Remont/releases/tag/android-latest';   // страница скачивания Android-приложения
 const FR_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
 const frRnd = (abc, n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => abc[b % abc.length]).join('');
 const frUrl = k => VK_REDIRECT().replace(/app-vk\.html$/, '') + '#f=' + k;   // .../Remont/#f=ключ
