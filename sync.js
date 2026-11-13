@@ -153,7 +153,7 @@ async function ydScreen() {
     const r = await formBox('ClientID приложения Яндекса', [{ k: 'cid', label: 'ClientID (из oauth.yandex.ru → ваше приложение)' }], { cid: ydCid() });
     if (!r) return; LS.set('ydClient', r.cid.trim()); if (k === 'cid') return toast('ClientID сохранён');
   }
-  if (k === 'on') location.href = 'https://oauth.yandex.ru/authorize?response_type=token&force_confirm=yes&client_id=' + encodeURIComponent(ydCid()) + '&redirect_uri=' + encodeURIComponent(location.origin + location.pathname);
+  if (k === 'on') location.href = 'https://oauth.yandex.ru/authorize?response_type=token&force_confirm=yes&client_id=' + encodeURIComponent(ydCid()) + '&redirect_uri=' + encodeURIComponent(location.origin + location.pathname.replace(/[^/]*$/, ''));   // 0.34.1: всегда .../Remont/ (а не .../index.html) - иначе Яндекс: «redirect_uri не совпадает»
 }
 // Запуск: принять токен после входа, синхронизироваться, повторять при появлении сети и раз в 5 минут
 function ydInit() {
