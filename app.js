@@ -1,6 +1,6 @@
 /* Справочник ремонта — шаг 4: фото (качество, подсказка, ⭐, память) */
 'use strict';
-const APP_VERSION = '0.34.1';
+const APP_VERSION = '0.34.2';
 // Настройки программы — config.js (JetService: своё имя, своё хранилище, только Jetour). Нет файла — общий справочник.
 const APP = Object.assign({ name: 'Справочник ремонта', db: 'repairRef', ls: 'rr_', only: '' }, window.APP_CFG || {});
 
@@ -467,6 +467,13 @@ function renderSearch(v, c, q) {
   if (!c.brand) {
     html += caseHits(has, hl, h) + brandModelHits(vs, hl, h);
     const ws = DB.templates.filter(t => has(t.name)).slice(0, 100);
+    // 0.34.2: свои работы по маркам тоже находятся с главного экрана (раньше - только после выбора марки)
+    const own = DB.items.filter(i => has(i.name) && findBrand(i.brand)).slice(0, 100);
+    if (own.length) html += '<h2>Работы по маркам: ' + own.length + '</h2>' + rowsHtml(own.map(w => {
+      const br = findBrand(w.brand), mo = w.model && (br.models || []).find(m => m.id === w.model);
+      h[w.id] = () => goPath([{ type: 'brand', id: br.id }].concat(mo ? [{ type: 'model', id: mo.id }] : [], [{ type: 'work', id: w.id }]));
+      return { k: w.id, t: hl(w.name), s: esc(br.name + (mo ? ' ' + mo.name : '') + (w.group ? ' › ' + w.group : '')) };
+    }));
     html += codeHits(q, hl, h);
     if (ws.length) html += '<h2>Общие работы</h2>' + rowsHtml(ws.map(w => { h[w.id] = () => {}; return { k: w.id, t: hl(w.name), s: esc(w.group) }; })) + '<p class="s" style="color:var(--muted);padding:8px 4px">Выберите марку, чтобы открыть работу.</p>';
   } else {
