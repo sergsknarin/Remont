@@ -25,6 +25,7 @@ h2{font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.04
 .empty{color:var(--muted);text-align:center;padding:30px}
 .sheet{position:fixed;inset:auto 0 0 0;z-index:10;background:var(--card);border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:8px;box-shadow:0 -8px 30px #0004;max-width:760px;margin:0 auto}
 .sheet button{display:block;width:100%;text-align:left;padding:14px;border:0;background:none;color:var(--fg);font-size:16px;border-radius:10px}
+.sheet button[hidden]{display:none}
 .sheet button:active{background:var(--line)}
 .sheet .muted{color:var(--muted)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 16px;border-radius:10px;z-index:20;max-width:90vw}
@@ -192,3 +193,4 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
 .reg .regkm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px}.reg .regkm input{width:110px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font-size:16px}
 .reg .regkm button{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font-size:15px}
 .reg details{margin:8px 0}.reg summary{cursor:pointer;color:var(--acc)}
+.modal p{overflow-wrap:anywhere}

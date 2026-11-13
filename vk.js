@@ -57,6 +57,25 @@ async function vkCallback(say) {
   } catch (e) { say(e.message); }
   return true;
 }
+// 0.32.0: вход друга по личной ссылке  .../Remont/#f=ключ  (ключ выдаёт владелец: Справочник → «Доступ друзьям» или сайт → ⋮ → «Друзья»)
+async function keyCallback(say) {
+  const h = new URLSearchParams(location.hash.slice(1)), k = h.get('f');
+  if (!k) return false;
+  history.replaceState(history.state, '', location.pathname);   // ссылку убираем из адреса, чтобы не переслать дальше
+  if (!FN_URL) { say('Вход по ссылке не настроен (FN_URL в vk.js)'); return true; }
+  try {
+    const j = await fnCall({ a: 'key_login', k });
+    if (!j.ok) { say(j.error); return true; }
+    vkLS.set('vkS', { s: j.s, vk: j.vk, name: j.name, role: j.role, via: 'link' }); vkLS.set('vkDenied', null);
+    say('Вы вошли: ' + j.name + ' (друг)');
+  } catch (e) { say('Вход по ссылке: ' + e.message); }
+  return true;
+}
+// ---------- владелец: список друзей (access.json) с телефона ----------
+const FR_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+const frRnd = (abc, n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => abc[b % abc.length]).join('');
+const frUrl = k => VK_REDIRECT().replace(/app-vk\.html$/, '') + '#f=' + k;   // .../Remont/#f=ключ
+const frId = f => String(f.id || f.vk || '');
 function vkLogout() { vkLS.set('vkS', null); vkLS.set('vkMine', null); vkLS.set('vkUp', null); }
 
 // ---------- владелец: Диск через функцию ----------

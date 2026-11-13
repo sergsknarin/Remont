@@ -10,7 +10,8 @@
 <p id="u" style="font-size:12px"></p><button onclick="print()">Печать</button>
 <script>
 const u=location.hash.slice(1);
-if(!/^https:\/\/[^\s]+#k=[A-Za-z0-9]{16,64}$/.test(u)){document.getElementById("q").innerHTML="<p>Нет ссылки - откройте QR из программы (карточка авто → «Ссылка для клиента»).</p>"}
+const fr=/#f=[A-Za-z0-9]{16,64}$/.test(u);if(fr){document.querySelector("h2").textContent="Вход в справочник ремонта";document.querySelectorAll("p")[0].innerHTML="Наведите камеру телефона на код - откроется справочник, и вы войдёте.<br>Ссылка личная, не пересылайте её.";document.title="QR для друга"}
+if(!/^https:\/\/[^\s]+#[kf]=[A-Za-z0-9]{16,64}$/.test(u)){document.getElementById("q").innerHTML="<p>Нет ссылки - откройте QR из программы (карточка авто → «Ссылка для клиента»).</p>"}
 else if(typeof qrcode!=="function"){document.getElementById("q").innerHTML="<p>Не загрузился генератор QR (нет интернета?). Ссылка ниже.</p>"}
 else{const q=qrcode(0,"M");q.addData(u);q.make();document.getElementById("q").innerHTML=q.createSvgTag({cellSize:8,margin:4})}
 document.getElementById("u").textContent=u;
