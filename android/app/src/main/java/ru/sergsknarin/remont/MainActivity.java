@@ -48,7 +48,8 @@ public class MainActivity extends Activity {
                 Uri u = r.getUrl(); String sc = String.valueOf(u.getScheme()), h = String.valueOf(u.getHost());
                 if (sc.equals("http") || sc.equals("https")) {
                     // сайт и вход (Яндекс, VK ID) - внутри приложения, остальное - в браузере
-                    if (h.equals(HOST) || h.endsWith("yandex.ru") || h.endsWith("yandex.net") || h.endsWith("vk.ru") || h.endsWith("vk.com") || h.endsWith("ok.ru") || h.endsWith("mail.ru")) return false;
+                    // VK ID не пускает вход из встроенного окна («app is not found») - вход через ВК открываем в Chrome, назад - через app-vk.html → remont://vk
+                    if (h.equals(HOST) || h.endsWith("yandex.ru") || h.endsWith("yandex.net")) return false;
                 }
                 open(new Intent(Intent.ACTION_VIEW, u));   // tel:, whatsapp:, сторонние сайты
                 return true;
@@ -80,10 +81,15 @@ public class MainActivity extends Activity {
         });
         web.setDownloadListener((url, ua, cd, mime, len) -> open(new Intent(Intent.ACTION_VIEW, Uri.parse(url))));
         Intent in = getIntent();
-        web.loadUrl(in != null && in.getData() != null ? in.getData().toString() : START);
+        web.loadUrl(in != null && in.getData() != null ? target(in.getData()) : START);
     }
 
-    @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); if (i.getData() != null) web.loadUrl(i.getData().toString()); }
+    /** remont://vk?code=...&state=... → страница сайта, где вход завершится (там же хранится проверочный код PKCE). */
+    private static String target(Uri u) {
+        if ("remont".equals(u.getScheme())) return "https://" + HOST + "/Remont/?" + (u.getEncodedQuery() == null ? "" : u.getEncodedQuery());
+        return u.toString();
+    }
+    @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); if (i.getData() != null) web.loadUrl(target(i.getData())); }
 
     @Override protected void onActivityResult(int req, int res, Intent data) {
         if (req != REQ_FILE || pick == null) { super.onActivityResult(req, res, data); return; }

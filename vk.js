@@ -6,7 +6,8 @@
 const VK_APP = '54887685';                       // ID приложения VK ID (не секрет)
 const FN_URL = 'https://functions.yandexcloud.net/d4e873cpnkojebsnnmti';                       // «Ссылка для вызова» функции https://functions.yandexcloud.net/...
 const VK_ON = () => !!(VK_APP && FN_URL);
-const VK_REDIRECT = () => location.origin + location.pathname.replace(/(autoservice|garage)\/.*$/, '').replace(/[^/]*$/, '');   // .../Remont/
+const IN_APP = /RemontApp/.test(navigator.userAgent);   // Android-приложение: вход ВК идёт через Chrome и возвращается через app-vk.html
+const VK_REDIRECT = () => location.origin + location.pathname.replace(/(autoservice|garage|my)\/.*$/, '').replace(/[^/]*$/, '') + (IN_APP ? 'app-vk.html' : '');   // .../Remont/
 const vkLS = { get(k, d) { try { const v = localStorage.getItem('rr_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('rr_' + k, JSON.stringify(v)); } catch (e) { } } };
 const vkS = () => vkLS.get('vkS', null);              // {s, vk, name, role}
