@@ -13,8 +13,8 @@
      Новое с телефона: app:/autoservice/inbox/*.json - ПК забирает и вносит в базу.
      Вход в Яндекс - общий со «Справочником ремонта» (тот же сайт, ключ rr_ydToken). -->
 <style>
-:root{--ph:#f2f2f7;--card:#fff;--fg:#111;--mut:#6e6e73;--sep:#d1d1d6;--tint:#0a64d6;--ok:#2e9d4b;--warn:#d97706;--bad:#d23b3b;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--ph:#000;--card:#1c1c1e;--fg:#f2f2f7;--mut:#98989f;--sep:#38383a;--tint:#4b9bff;color-scheme:dark}}
+:root{--ph:#f4f5f8;--card:#fff;--fg:#14181f;--mut:#6b7280;--sep:#e5e7eb;--tint:#2563eb;--ok:#059669;--warn:#d97706;--bad:#d23b3b;--tbg:#e8efff;--okbg:#def5ec;--wbg:#fdf1de;--gbg:#eceef1;--shadow:0 1px 2px rgba(16,24,40,.06),0 4px 14px rgba(16,24,40,.06);color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--ph:#0e1116;--card:#171b22;--fg:#eef1f6;--mut:#97a0ae;--sep:#262c36;--tint:#4f8cff;--ok:#34d399;--warn:#f5a524;--tbg:#1b2742;--okbg:#0f3327;--wbg:#3a2a10;--gbg:#222832;--shadow:0 1px 2px rgba(0,0,0,.4);color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--ph);color:var(--fg);font:16px -apple-system,"SF Pro Text",Roboto,Arial,sans-serif;display:flex;flex-direction:column;-webkit-tap-highlight-color:transparent}
@@ -29,7 +29,7 @@ nav{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--
 nav button{background:none;border:0;color:var(--mut);font:11px inherit;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:2px 0}
 nav button b{font-size:21px;font-weight:400;line-height:1}
 nav button.cur{color:var(--tint)}
-.blk{background:var(--card);border-radius:12px;margin-top:10px;overflow:hidden}
+.blk{background:var(--card);border-radius:16px;margin-top:10px;overflow:hidden;box-shadow:var(--shadow)}
 .bh{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;padding:14px 4px 0}
 .row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--sep);min-height:44px}
 .row:first-child{border-top:0}
@@ -39,17 +39,10 @@ nav button.cur{color:var(--tint)}
 .row .m div+div{font-size:13px;color:var(--mut);overflow:hidden;text-overflow:ellipsis}
 .row .r{font-size:14px;color:var(--mut);white-space:nowrap;text-align:right}
 .time{font-variant-numeric:tabular-nums;font-weight:600;min-width:46px}
-.pill{flex:none;font-size:11px;padding:3px 8px;border-radius:9px;color:#fff;background:var(--tint);white-space:nowrap}
-.pill.ok{background:var(--ok)}.pill.w{background:var(--warn)}.pill.g{background:var(--mut)}
-.days{display:flex;gap:6px;overflow-x:auto;padding:8px 2px 2px}
-.days button{flex:1 0 42px;text-align:center;padding:6px 0;border-radius:10px;background:var(--card);font:12px inherit;font-family:inherit;color:var(--mut);border:0;cursor:pointer}
-.days button b{display:block;font-size:17px;color:var(--fg)}
-.days button i{display:block;font-style:normal;font-size:10px;height:12px;color:var(--tint)}
-.days button.cur{background:var(--tint);color:#fff}.days button.cur b,.days button.cur i{color:#fff}
-.wk{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
-.wk button{background:none;border:0;color:var(--tint);font:15px inherit;font-family:inherit;padding:6px 4px;cursor:pointer}
-input[type=search]{width:100%;font:17px inherit;font-family:inherit;padding:11px 12px;border-radius:10px;border:0;background:var(--card);color:var(--fg);margin-top:10px;-webkit-appearance:none}
-.btn{display:block;width:100%;text-align:center;background:var(--tint);color:#fff;border-radius:12px;padding:13px;font:600 16px inherit;font-family:inherit;border:0;margin-top:14px;cursor:pointer;text-decoration:none}
+.pill{flex:none;font-size:11px;font-weight:650;padding:3px 9px;border-radius:999px;color:var(--tint);background:var(--tbg);white-space:nowrap}
+.pill.ok{color:var(--ok);background:var(--okbg)}.pill.w{color:var(--warn);background:var(--wbg)}.pill.g{color:var(--mut);background:var(--gbg)}
+input[type=search]{width:100%;font:17px inherit;font-family:inherit;padding:12px 14px;border-radius:14px;border:0;background:var(--card);color:var(--fg);margin-top:10px;-webkit-appearance:none;box-shadow:var(--shadow)}
+.btn{display:block;width:100%;text-align:center;background:var(--tint);color:#fff;border-radius:14px;padding:13px;font:600 16px inherit;font-family:inherit;border:0;margin-top:14px;cursor:pointer;text-decoration:none}
 .btn.sec{background:var(--card);color:var(--tint)}
 .btn:disabled{opacity:.5}
 .call{color:var(--ok);font-size:22px;text-decoration:none;padding:4px}
@@ -73,6 +66,59 @@ input[type=search]{width:100%;font:17px inherit;font-family:inherit;padding:11px
 a.site{color:inherit;text-decoration:none}
 .ph{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px}.ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px}
 .notes{white-space:pre-wrap;padding:11px 14px;font-size:15px;line-height:1.35}
+/* ---- Записи: новый вид (карточки, лента дней, месяц) ---- */
+.mrow{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px}
+.mbtn{display:inline-flex;align-items:center;gap:6px;border:0;background:var(--card);color:var(--fg);box-shadow:var(--shadow);padding:9px 14px;border-radius:12px;font:650 15px inherit;font-family:inherit;cursor:pointer}
+.mquick{display:flex;gap:6px}
+.chip{flex:none;border:1px solid var(--sep);background:var(--card);color:var(--fg);padding:8px 14px;border-radius:999px;font:14px inherit;font-family:inherit;cursor:pointer}
+.chip.on{background:var(--tint);border-color:var(--tint);color:#fff;font-weight:600}
+.mquick .chip{padding:7px 12px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar,.dates::-webkit-scrollbar{display:none}
+.dates{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 2px;scrollbar-width:none}
+.dt{flex:none;width:52px;border:1px solid var(--sep);background:var(--card);color:var(--fg);border-radius:14px;padding:8px 0 6px;font:inherit;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.dt .w{font-size:12px;color:var(--mut);text-transform:uppercase}
+.dt .n{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.dt .dot{height:6px;display:flex;gap:3px;align-items:center}
+.dt .dot b,.grid button .dot b{width:6px;height:6px;border-radius:50%;background:var(--tint)}
+.dt.td .n{color:var(--tint)}
+.dt.cur{background:var(--tint);border-color:var(--tint);color:#fff}
+.dt.cur .w,.dt.cur .n{color:#fff}.dt.cur .dot b{background:#fff}
+.dt.all{width:62px;justify-content:center;font-weight:650;font-size:14px}
+.ap{display:grid;grid-template-columns:52px 1fr;gap:10px;background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:12px 12px 12px 14px;margin-top:10px;position:relative;overflow:hidden;cursor:pointer;--c:var(--tint)}
+.ap.w{--c:var(--warn)}.ap.ok{--c:var(--ok)}.ap.g{--c:var(--mut)}
+.ap::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.atm{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.amn{min-width:0}
+.a1{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.a1 b{font-size:16px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plate{display:inline-flex;align-items:center;margin:6px 0 2px;border:1.5px solid #14181f;background:#fff;color:#14181f;border-radius:6px;padding:1px 8px;font-weight:700;letter-spacing:.06em;font-size:14px}
+.plate i{font-style:normal;font-size:10px;margin-left:6px;padding-left:6px;border-left:1.5px solid #14181f;line-height:1}
+.acl{color:var(--mut);font-size:14px}
+.arz{margin-top:4px;font-size:14px;word-break:break-word}
+.act{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--ph);color:var(--fg);padding:7px 12px;border-radius:10px;font-size:13px;text-decoration:none}
+.fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);width:56px;height:56px;border-radius:18px;border:0;background:var(--tint);color:#fff;box-shadow:0 8px 22px rgba(37,99,235,.4);display:grid;place-items:center;cursor:pointer;z-index:6}
+.fab[hidden]{display:none}
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
+.shade.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--card);border-radius:22px 22px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));max-width:520px;margin:0 auto;transform:translateY(105%);transition:transform .25s ease;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+.sheet.open{transform:none}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--sep);margin:0 auto 10px}
+.mnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mnav b{font-size:18px}
+.mnav button{border:0;background:var(--ph);color:var(--fg);width:38px;height:38px;border-radius:12px;display:grid;place-items:center;cursor:pointer}
+.wkh,.grid{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
+.wkh span{font-size:12px;color:var(--mut);padding:6px 0;text-transform:uppercase}
+.grid button{border:0;background:transparent;color:var(--fg);height:46px;border-radius:12px;font:16px inherit;font-family:inherit;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.grid button.out{color:var(--mut);opacity:.45}
+.grid button.td{color:var(--tint);font-weight:700}
+.grid button.cur{background:var(--tint);color:#fff;font-weight:700}
+.grid button .dot{height:5px;display:flex;gap:2px}
+.grid button .dot b{width:5px;height:5px}
+.grid button.cur .dot b{background:#fff}
+.sfoot{display:flex;gap:8px;margin-top:12px}
+.sfoot .chip{flex:1;text-align:center;padding:11px}
+nav button svg{display:block}#ca_list{padding-bottom:76px}
 </style>
 </head>
 <body>
@@ -80,12 +126,21 @@ a.site{color:inherit;text-decoration:none}
  <div class="sync" id="sync" hidden><span id="syncTxt"></span><button id="syncBtn">Обновить</button></div></div>
 <main id="main"></main>
 <nav id="nav" hidden>
-  <button data-t="cal"><b>📅</b>Записи</button>
-  <button data-t="cli"><b>👤</b>Клиенты</button>
-  <button data-t="car"><b>🚗</b>Авто</button>
-  <button data-t="find"><b>🔍</b>Поиск</button>
-  <button data-t="add"><b>＋</b>Новая</button>
+  <button data-t="cal"><b><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></b>Записи</button>
+  <button data-t="cli"><b><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg></b>Клиенты</button>
+  <button data-t="car"><b><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3zM7 13h.01M17 13h.01"/></svg></b>Авто</button>
+  <button data-t="find"><b><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></b>Поиск</button>
+  <button data-t="add"><b><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></b>Новая</button>
 </nav>
+<button class="fab" id="ca_fab" hidden aria-label="Новая запись"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<div class="shade" id="ca_shade"></div>
+<div class="sheet" id="ca_sheet" role="dialog" aria-label="Выбор даты">
+ <div class="grab"></div>
+ <div class="mnav"><button id="ca_mp" aria-label="Предыдущий месяц"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button><b id="ca_mt"></b><button id="ca_mn" aria-label="Следующий месяц"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button></div>
+ <div class="wkh"><span>пн</span><span>вт</span><span>ср</span><span>чт</span><span>пт</span><span>сб</span><span>вс</span></div>
+ <div class="grid" id="ca_grid"></div>
+ <div class="sfoot"><button class="chip" id="ca_s_td">Сегодня</button><button class="chip" id="ca_s_mo">Весь месяц</button><button class="chip" id="ca_s_all">Все дни</button></div>
+</div>
 <script src="../vk.js"></script>
 <script>
 "use strict";
@@ -95,6 +150,7 @@ const LSg=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}c
 const LSs=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const tok=()=>LSg("rr_ydToken","");
 let D=null,tab="cal",day=new Date(),carId=LSg("as_car",null),cliQ="",findQ="",backTo=null,sel=null;
+let calMode="day",calMonth=null,calQ="",calSt="all",calTimer,calCnt={},calView="";   // экран «Записи»: день / месяц / все дни
 let pend=LSg("as_pending",[]);   // отправлено с телефона, ПК ещё не внёс
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
@@ -103,7 +159,7 @@ const norm=s=>String(s||"").toLowerCase().replace(/ё/g,"е").replace(/[\s\-.\/]
 const WD=["Вс","Пн","Вт","Ср","Чт","Пт","Сб"],WDL=["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"],MON=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 function tel(p){const d=String(p||"").replace(/[^\d+]/g,"");return d?`<a class="call" href="tel:${esc(d)}" aria-label="Позвонить">📞</a>`:""}
 function pill(s){const c=/выполн|закрыт|выдан/i.test(s)?"ok":/работ/i.test(s)?"w":/отмен|ждёт/i.test(s)?"g":"";return `<span class="pill ${c}">${esc(s==="Запланирована"?"План":s)}</span>`}
-function head(t,s,back){T.textContent=t;SUB.textContent=s||"";BACK.hidden=!back;backTo=back||null}
+function head(t,s,back){T.textContent=t;SUB.textContent=s||"";BACK.hidden=!back;backTo=back||null;const f=document.getElementById("ca_fab");if(f)f.hidden=true}
 BACK.onclick=()=>{if(backTo)backTo()};
 
 // ---------- Яндекс.Диск ----------
@@ -182,22 +238,92 @@ function pendingAppts(d){return pend.filter(p=>p.type==="appt"&&p.date===d).map(
 // ---------- экраны ----------
 function go(t){tab=t;for(const b of NAV.children)b.classList.toggle("cur",b.dataset.t===t);M.scrollTop=0;({cal,cli,car:cars,find,add:()=>sel?add():addMenu()})[t]()}
 for(const b of NAV.children)b.onclick=()=>go(b.dataset.t);
-function cal(){
- head("Записи",WDL[day.getDay()]+", "+day.getDate()+" "+MON[day.getMonth()]);
- const mon=new Date(day);mon.setDate(day.getDate()-((day.getDay()+6)%7));
- let h=`<div class="wk"><button id="pw1">‹ Неделя</button><button id="td">Сегодня</button><button id="nw1">Неделя ›</button></div><div class="days">`;
- for(let i=0;i<7;i++){const x=new Date(mon);x.setDate(mon.getDate()+i);const s=iso(x);const n=D.appts.filter(a=>a.start.slice(0,10)===s).length+pendingAppts(s).length;
-  h+=`<button data-d="${s}" class="${s===iso(day)?"cur":""}">${WD[x.getDay()]}<b>${x.getDate()}</b><i>${n||""}</i></button>`}
- const items=D.appts.filter(a=>a.start.slice(0,10)===iso(day)).map(a=>({...a,time:a.start.slice(11,16),car:carTitle(carById(a.car)),client:(cliById(a.client)||{}).name||"",phone:(cliById(a.client)||{}).phone||"",post:(D.posts.find(p=>String(p.id)===String(a.post))||{}).name||""}))
-  .concat(pendingAppts(iso(day))).sort((x,y)=>x.time.localeCompare(y.time));
- h+=`</div><div class="bh">${items.length?"Записей: "+items.length:""}</div>`;
- if(!items.length)h+=`<p class="empty">На этот день записей нет</p>`;
- else{h+=`<div class="blk">`;for(const a of items)h+=`<div class="row tap" data-id="${a.id||(a.tmp?"tmp:"+a.tmp:"")}"><span class="time">${esc(a.time)}</span><div class="m"><div>${esc(a.car||"Без авто")}</div><div>${esc([a.client,a.reason,a.post].filter(Boolean).join(" · "))}</div></div>${pill(a.status)}${tel(a.phone)}</div>`;h+=`</div>`}
- M.innerHTML=h;
- M.querySelectorAll(".days button").forEach(b=>b.onclick=()=>{day=new Date(b.dataset.d+"T12:00");cal()});
- pw1.onclick=()=>{day.setDate(day.getDate()-7);cal()};nw1.onclick=()=>{day.setDate(day.getDate()+7);cal()};td.onclick=()=>{day=new Date();cal()};
- M.querySelectorAll(".row.tap").forEach(r=>r.onclick=e=>{if(e.target.closest("a"))return;if(r.dataset.id)appt(r.dataset.id,()=>go("cal"))});
+// ---------- «Записи»: день / месяц / все дни, поиск, статусы ----------
+const MONN=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const stCls=s=>/выполн|закрыт|выдан/i.test(s)?"ok":/работ/i.test(s)?"w":/отмен|ждёт/i.test(s)?"g":"";
+const shiftDay=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+function plateHtml(p){
+ p=String(p||"").replace(/\s+/g,"");if(!p)return"";
+ const m=p.match(/^([A-Za-zА-Яа-яЁё]\d{3}[A-Za-zА-Яа-яЁё]{2})(\d{2,3})$/);
+ return m?`<span class="plate">${esc(m[1].toUpperCase())}<i>${esc(m[2])}</i></span>`:`<span class="plate">${esc(p.toUpperCase())}</span>`;
 }
+function dayName(s){
+ const d=new Date(s+"T12:00"),w=s===iso(new Date())?"Сегодня":s===iso(shiftDay(new Date(),1))?"Завтра":s===iso(shiftDay(new Date(),-1))?"Вчера":WDL[d.getDay()];
+ return w+", "+d.getDate()+" "+MON[d.getMonth()];
+}
+// все записи в одном виде: из выгрузки ПК + отправленные с телефона и ещё не внесённые
+function calAll(){
+ const live=D.appts.map(a=>{const c=carById(a.car),cl=cliById(a.client)||{};
+  return {id:a.id,date:a.start.slice(0,10),time:a.start.slice(11,16),status:a.status||"",car:c?(c.brand+" "+c.model).trim():"",plate:c?c.plate:"",vin:c?c.vin:"",client:cl.name||"",phone:cl.phone||"",reason:a.reason||"",post:(D.posts.find(p=>String(p.id)===String(a.post))||{}).name||""}});
+ const pe=[...new Set(pend.filter(p=>p.type==="appt").map(p=>p.date))].flatMap(d=>pendingAppts(d).map(a=>({id:"",tmp:a.tmp,date:d,time:a.time,status:a.status,car:a.car,plate:"",vin:"",client:"",phone:"",reason:a.reason,post:a.post})));
+ return live.concat(pe);
+}
+function cal(){
+ head("Записи","");
+ const fab=document.getElementById("ca_fab");fab.hidden=false;fab.onclick=()=>go("add");
+ const all=calAll(),today=iso(new Date()),ds=iso(day);
+ calCnt={};for(const a of all)calCnt[a.date]=(calCnt[a.date]||0)+1;
+ if(!calMonth)calMonth=ds.slice(0,7);
+ const ym=calMode==="month"?calMonth:ds.slice(0,7);
+ let strip=`<button class="dt all ${calMode==="all"?"cur":""}" data-m="all">Все дни</button>`;
+ for(let i=-3;i<18;i++){const x=shiftDay(day,i),s=iso(x),n=Math.min(calCnt[s]||0,3);
+  strip+=`<button class="dt ${s===today?"td":""} ${calMode==="day"&&s===ds?"cur":""}" data-d="${s}"><span class="w">${WD[x.getDay()]}</span><span class="n">${x.getDate()}</span><span class="dot">${"<b></b>".repeat(n)}</span></button>`}
+ const st=[["all","Все"],["open","Открыты"],["w","В работе"],["ok","Закрыты"]];
+ M.innerHTML=`<input type="search" id="ca_q" placeholder="Госномер, марка, клиент, VIN" value="${esc(calQ)}">
+ <div class="mrow"><button class="mbtn" id="ca_mb">${MONN[+ym.slice(5,7)-1]} ${ym.slice(0,4)}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+  <div class="mquick"><button class="chip ${calMode==="day"&&ds===today?"on":""}" id="ca_td">Сегодня</button><button class="chip ${calMode==="month"?"on":""}" id="ca_mo">Весь месяц</button></div></div>
+ <div class="dates" id="ca_dates">${strip}</div>
+ <div class="chips">${st.map(([k,n])=>`<button class="chip ${calSt===k?"on":""}" data-s="${k}">${n}</button>`).join("")}</div>
+ <div id="ca_list"></div>`;
+ const q=document.getElementById("ca_q");
+ q.oninput=()=>{calQ=q.value;clearTimeout(calTimer);calTimer=setTimeout(()=>calList(all),150)};
+ document.getElementById("ca_dates").onclick=e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.m)calMode="all";else{day=new Date(b.dataset.d+"T12:00");calMode="day"}
+  calMonth=null;cal()};
+ document.getElementById("ca_td").onclick=()=>{day=new Date();calMode="day";calMonth=null;cal()};
+ document.getElementById("ca_mo").onclick=()=>{const m=calMode==="month"?calMonth:ds.slice(0,7);calMode="month";calMonth=m;cal()};
+ document.getElementById("ca_mb").onclick=()=>{calView=ym;calGrid();document.getElementById("ca_sheet").classList.add("open");document.getElementById("ca_shade").classList.add("open")};
+ M.querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{calSt=b.dataset.s;cal()});
+ calList(all);
+ const cur=M.querySelector(".dt.cur");if(cur)cur.scrollIntoView({inline:"center",block:"nearest"});
+}
+function calList(all){
+ const box=document.getElementById("ca_list");if(!box)return;
+ const q=norm(calQ),ds=iso(day);
+ let it=all.filter(a=>{const c=stCls(a.status);return calSt==="all"||(calSt==="open"?c==="":c===calSt)});
+ if(q)it=it.filter(a=>norm([a.car,a.plate,a.vin,a.client,a.reason].join(" ")).includes(q));   // поиск - по всем дням
+ else if(calMode==="day")it=it.filter(a=>a.date===ds);
+ else if(calMode==="month")it=it.filter(a=>a.date.slice(0,7)===calMonth);
+ const desc=!!q||calMode==="all",multi=!!q||calMode!=="day";
+ it.sort((x,y)=>desc?(x.date===y.date?x.time.localeCompare(y.time):y.date.localeCompare(x.date)):(x.date+x.time).localeCompare(y.date+y.time));
+ const total=it.length,LIM=150;if(total>LIM)it=it.slice(0,LIM);
+ SUB.textContent=(q?"Поиск по всем дням":calMode==="all"?"Все дни":calMode==="month"?MONN[+calMonth.slice(5,7)-1]+" "+calMonth.slice(0,4):dayName(ds))+" · записей: "+total;
+ if(!total){box.innerHTML=`<p class="empty">${q?"Ничего не нашлось":calMode==="day"?"На этот день записей нет":calMode==="month"?"В этом месяце записей нет":"Записей нет"}</p>`;return}
+ let h="",cur="";
+ for(const a of it){
+  if(multi&&a.date!==cur){cur=a.date;h+=`<div class="bh">${esc(dayName(cur))}</div>`}
+  const c=stCls(a.status),ph=String(a.phone||"").replace(/[^\d+]/g,"");
+  h+=`<div class="ap ${c}" data-id="${esc(a.id||(a.tmp?"tmp:"+a.tmp:""))}"><div class="atm">${esc(a.time)}</div><div class="amn"><div class="a1"><b>${esc(a.car||"Без авто")}</b>${pill(a.status)}</div>${plateHtml(a.plate)}${a.client?`<div class="acl">${esc(a.client)}</div>`:""}${a.reason||a.post?`<div class="arz">${esc([a.reason,a.post].filter(Boolean).join(" · "))}</div>`:""}${ph?`<a class="act" href="tel:${esc(ph)}">📞 Позвонить</a>`:""}</div></div>`}
+ if(total>LIM)h+=`<p class="empty">Показаны ${LIM} из ${total}. Уточните поиск, дату или статус.</p>`;
+ box.innerHTML=h;
+ box.querySelectorAll(".ap").forEach(r=>r.onclick=e=>{if(e.target.closest("a"))return;if(r.dataset.id)appt(r.dataset.id,()=>go("cal"))});
+}
+// окно выбора месяца
+function calGrid(){
+ const y=+calView.slice(0,4),m=+calView.slice(5,7)-1,lead=(new Date(y,m,1,12).getDay()+6)%7,today=iso(new Date()),ds=iso(day);
+ document.getElementById("ca_mt").textContent=MONN[m]+" "+y;
+ let h="";for(let i=0;i<42;i++){const x=new Date(y,m,1-lead+i,12),s=iso(x),n=Math.min(calCnt[s]||0,3);
+  h+=`<button data-d="${s}" class="${x.getMonth()!==m?"out ":""}${s===today?"td ":""}${calMode==="day"&&s===ds?"cur":""}">${x.getDate()}<span class="dot">${"<b></b>".repeat(n)}</span></button>`}
+ document.getElementById("ca_grid").innerHTML=h;
+}
+(()=>{const g=id=>document.getElementById(id),close=()=>{g("ca_sheet").classList.remove("open");g("ca_shade").classList.remove("open")};
+ const mv=n=>{calView=iso(new Date(+calView.slice(0,4),+calView.slice(5,7)-1+n,1,12)).slice(0,7);calGrid()};
+ g("ca_shade").onclick=close;g("ca_mp").onclick=()=>mv(-1);g("ca_mn").onclick=()=>mv(1);
+ g("ca_grid").onclick=e=>{const b=e.target.closest("button");if(!b)return;close();day=new Date(b.dataset.d+"T12:00");calMode="day";calMonth=null;cal()};
+ g("ca_s_td").onclick=()=>{close();day=new Date();calMode="day";calMonth=null;cal()};
+ g("ca_s_mo").onclick=()=>{close();calMode="month";calMonth=calView;cal()};
+ g("ca_s_all").onclick=()=>{close();calMode="all";cal()};
+})();
 function clientsMatching(q){
  const n=norm(q),dg=q.replace(/\D/g,"");
  const lastVisit={};for(const a of D.appts)if(a.client&&(!lastVisit[a.client]||a.start>lastVisit[a.client]))lastVisit[a.client]=a.start;
